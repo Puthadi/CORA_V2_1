@@ -1,0 +1,48 @@
+{
+  "xsappname": "cc-error-agent",
+  "tenant-mode": "dedicated",
+  "description": "XSUAA configuration for Cost Center Error Resolution Agent",
+  "scopes": [
+    {
+      "name": "$XSAPPNAME.CostCenterAccountant",
+      "description": "View and resolve cost center errors"
+    },
+    {
+      "name": "$XSAPPNAME.CostCenterManager",
+      "description": "Manage cost center master data and approve workflow actions"
+    },
+    {
+      "name": "$XSAPPNAME.ControllingAdmin",
+      "description": "Full administration including error pattern configuration"
+    }
+  ],
+  "attributes": [],
+  "role-templates": [
+    {
+      "name": "CostCenterAccountant",
+      "description": "Cost Center Accountant role",
+      "scope-references": ["$XSAPPNAME.CostCenterAccountant"]
+    },
+    {
+      "name": "CostCenterManager",
+      "description": "Cost Center Manager role",
+      "scope-references": [
+        "$XSAPPNAME.CostCenterAccountant",
+        "$XSAPPNAME.CostCenterManager"
+      ]
+    },
+    {
+      "name": "ControllingAdmin",
+      "description": "Controlling Administrator role",
+      "scope-references": [
+        "$XSAPPNAME.CostCenterAccountant",
+        "$XSAPPNAME.CostCenterManager",
+        "$XSAPPNAME.ControllingAdmin"
+      ]
+    }
+  ],
+  "oauth2-configuration": {
+    "token-validity": 43200,
+    "redirect-uris": ["https://*.cfapps.*.hana.ondemand.com/**"]
+  }
+}

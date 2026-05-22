@@ -1,0 +1,81 @@
+{
+  "_version": "1.59.0",
+  "sap.app": {
+    "id": "cc.errorresolution.chat",
+    "type": "application",
+    "i18n": "i18n/i18n.properties",
+    "title": "{{appTitle}}",
+    "description": "{{appDescription}}",
+    "applicationVersion": { "version": "1.0.0" },
+    "dataSources": {
+      "agentService": {
+        "uri": "/agent/",
+        "type": "OData",
+        "settings": { "odataVersion": "4.0" }
+      },
+      "errorService": {
+        "uri": "/error/",
+        "type": "OData",
+        "settings": { "odataVersion": "4.0" }
+      }
+    }
+  },
+  "sap.ui": {
+    "technology": "UI5",
+    "icons": { "icon": "sap-icon://expense-report" },
+    "deviceTypes": { "desktop": true, "tablet": true, "phone": true }
+  },
+  "sap.ui5": {
+    "rootView": {
+      "viewName": "cc.errorresolution.chat.view.Main",
+      "type": "XML",
+      "async": true,
+      "id": "mainView"
+    },
+    "dependencies": {
+      "minUI5Version": "1.120.0",
+      "libs": {
+        "sap.m":        {},
+        "sap.ui.core":  {},
+        "sap.uxap":     {},
+        "sap.ui.layout":{}
+      }
+    },
+    "models": {
+      "i18n": {
+        "type": "sap.ui.model.resource.ResourceModel",
+        "settings": { "bundleName": "cc.errorresolution.chat.i18n.i18n" }
+      },
+      "agent": {
+        "type": "sap.ui.model.json.JSONModel",
+        "settings": {
+          "data": {
+            "sessionId": "",
+            "messages": [],
+            "inputText": "",
+            "busy": false,
+            "errorList": [],
+            "currentError": null,
+            "recommendations": [],
+            "actions": []
+          }
+        }
+      },
+      "errors": {
+        "dataSource": "errorService",
+        "settings": { "synchronizationMode": "None", "operationMode": "Server" }
+      }
+    },
+    "routing": {
+      "config": {
+        "routerClass": "sap.m.routing.Router",
+        "viewType": "XML",
+        "viewPath": "cc.errorresolution.chat.view",
+        "controlId": "mainNav",
+        "controlAggregation": "pages"
+      },
+      "routes": [{ "name": "main", "pattern": "", "target": "main" }],
+      "targets": { "main": { "viewId": "main", "viewName": "Main" } }
+    }
+  }
+}

@@ -1,0 +1,140 @@
+_schema-version: "3.1"
+ID: cc-error-agent
+description: AI Agent for SAP S/4HANA Cost Center Error Resolution
+version: 1.0.0
+
+modules:
+
+  # ─── CAP Node.js Backend ───────────────────────────────────────────────
+  - name: cc-error-agent-srv
+    type: nodejs
+    path: gen/srv
+    parameters:
+      buildpack: nodejs_buildpack
+      memory: 512M
+      disk-quota: 512M
+    build-parameters:
+      builder: npm
+    properties:
+      NODE_ENV: production
+      AI_CORE_TOKEN_URL:      ~{ai-core-credentials/url}/oauth/token
+      AI_CORE_CLIENT_ID:      ~{ai-core-credentials/clientid}
+      AI_CORE_CLIENT_SECRET:  ~{ai-core-credentials/clientsecret}
+      AI_CORE_BASE_URL:       ~{ai-core-credentials/serviceurls/AI_API_URL}/v2
+      AI_CORE_DEPLOYMENT_ID:  "<set-in-btp-cockpit>"
+      AI_RESOURCE_GROUP:      default
+      S4H_DESTINATION_NAME:   S4H_COSTCENTER
+    requires:
+      - name: cc-error-agent-db
+      - name: cc-error-agent-xsuaa
+      - name: cc-error-agent-connectivity
+      - name: cc-error-agent-destination
+      - name: cc-error-agent-ai-core
+        group: ai-core-credentials
+        properties:
+          url:          ~{url}
+          clientid:     ~{clientid}
+          clientsecret: ~{clientsecret}
+          serviceurls:  ~{serviceurls}
+    provides:
+      - name: srv-api
+        properties:
+          srv-url: ${default-url}
+
+  # ─── HANA Database Deployer ────────────────────────────────────────────
+  - name: cc-error-agent-db-deployer
+    type: hdb
+    path: gen/db
+    parameters:
+      buildpack: nodejs_buildpack
+    requires:
+      - name: cc-error-agent-db
+
+  # ─── Fiori App (HTML5) ─────────────────────────────────────────────────
+  - name: cc-error-agent-app
+    type: html5
+    path: app/chat
+    build-parameters:
+      build-result: .
+      builder: custom
+      commands: []
+      supported-platforms: []
+
+  # ─── App Router ────────────────────────────────────────────────────────
+  - name: cc-error-agent-approuter
+    type: approuter.nodejs
+    path: approuter
+    parameters:
+      memory: 256M
+      disk-quota: 256M
+    requires:
+      - name: cc-error-agent-xsuaa
+      - name: cc-error-agent-html5-runtime
+      - name: srv-api
+        group: destinations
+        properties:
+          name:       cc-error-agent-srv
+          url:        ~{srv-url}
+          forwardAuthToken: true
+    properties:
+      TENANT_HOST_PATTERN: "^(.*)-${default-uri}"
+
+resources:
+
+  # ─── HANA Cloud ────────────────────────────────────────────────────────
+  - name: cc-error-agent-db
+    type: com.sap.xs.hdi-container
+    parameters:
+      service:      hana
+      service-plan: hdi-shared
+
+  # ─── XSUAA ────────────────────────────────────────────────────────────
+  - name: cc-error-agent-xsuaa
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service:      xsuaa
+      service-plan: application
+      path:         ./xs-security.json
+      config:
+        xsappname: cc-error-agent-${org}-${space}
+        tenant-mode: dedicated
+
+  # ─── Connectivity (Cloud Connector for on-premise) ─────────────────────
+  - name: cc-error-agent-connectivity
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service:      connectivity
+      service-plan: lite
+
+  # ─── Destination (S/4HANA OData routing) ──────────────────────────────
+  - name: cc-error-agent-destination
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service:      destination
+      service-plan: lite
+      config:
+        init-data:
+          instance:
+            destinations:
+              - Name:            S4H_COSTCENTER
+                Description:     S/4HANA Cost Center OData Services
+                URL:             https://your-s4hana-host:443
+                Type:            HTTP
+                Authentication:  BasicAuthentication
+                ProxyType:       OnPremise
+                User:            "<set-credentials-in-btp-cockpit>"
+                Password:        "<set-credentials-in-btp-cockpit>"
+
+  # ─── SAP AI Core ──────────────────────────────────────────────────────
+  - name: cc-error-agent-ai-core
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service:      aicore
+      service-plan: extended
+
+  # ─── HTML5 App Runtime ─────────────────────────────────────────────────
+  - name: cc-error-agent-html5-runtime
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service:      html5-apps-repo
+      service-plan: app-runtime

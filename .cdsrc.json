@@ -1,0 +1,36 @@
+{
+  "build": {
+    "target": "gen",
+    "tasks": [
+      { "for": "hana" },
+      { "for": "nodejs" }
+    ]
+  },
+  "hana": {
+    "deploy-format": "hdbtable"
+  },
+  "i18n": {
+    "folders": ["_i18n", "i18n"]
+  },
+  "log": {
+    "levels": {
+      "cds": "error",
+      "sql": "error"
+    }
+  },
+  "[production]": {
+    "auth": {
+      "kind": "jwt",
+      "restrict-all-services": false
+    }
+  },
+  "[development]": {
+    "auth": {
+      "kind": "mocked",
+      "users": {
+        "alice": { "roles": ["CostCenterAccountant", "CostCenterManager"] },
+        "bob":   { "roles": ["CostCenterAccountant"] }
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "welcomeFile": "index.html",
+  "authenticationMethod": "route",
+  "routes": [
+    {
+      "source": "^/agent/(.*)$",
+      "target": "/agent/$1",
+      "destination": "cc-error-agent-srv",
+      "authenticationType": "xsuaa",
+      "csrfProtection": true
+    },
+    {
+      "source": "^/error/(.*)$",
+      "target": "/error/$1",
+      "destination": "cc-error-agent-srv",
+      "authenticationType": "xsuaa",
+      "csrfProtection": true
+    },
+    {
+      "source": "^/(.*)$",
+      "target": "$1",
+      "service": "html5-apps-repo-rt",
+      "authenticationType": "xsuaa"
+    }
+  ]
+}

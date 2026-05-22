@@ -1,0 +1,247 @@
+<mvc:View
+  controllerName="cc.errorresolution.chat.controller.Main"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:l="sap.ui.layout"
+  xmlns:f="sap.ui.layout.form"
+  xmlns:core="sap.ui.core"
+  displayBlock="true">
+
+  <Shell>
+    <App id="mainApp">
+      <pages>
+        <Page
+          id="mainPage"
+          title="CORA — Cost Center Error Resolution Agent"
+          showNavButton="false"
+          class="sapUiContentPadding">
+
+          <customHeader>
+            <Bar>
+              <contentLeft>
+                <Title text="CORA" level="H4"/>
+                <Text text="Cost Center Error Resolution Agent" class="sapUiTinyMarginBegin"/>
+              </contentLeft>
+              <contentRight>
+                <Button icon="sap-icon://refresh" tooltip="Refresh error list" press=".onRefreshErrors"/>
+                <Button icon="sap-icon://settings" tooltip="Settings" press=".onSettings"/>
+              </contentRight>
+            </Bar>
+          </customHeader>
+
+          <content>
+            <l:HorizontalLayout allowWrapping="false" width="100%">
+
+              <!-- ─── Left Panel: Error List ──────────────────────────── -->
+              <Panel
+                id="errorPanel"
+                headerText="Open Errors"
+                width="30%"
+                height="100%"
+                class="sapUiSmallMarginEnd">
+
+                <headerToolbar>
+                  <Toolbar>
+                    <Title text="Open Errors"/>
+                    <ToolbarSpacer/>
+                    <Select
+                      id="layerFilter"
+                      items="{
+                        path: '/layers',
+                        templateShareable: false
+                      }"
+                      change=".onLayerFilterChange">
+                      <core:Item key="" text="All Layers"/>
+                      <core:Item key="MASTER_DATA"   text="Master Data"/>
+                      <core:Item key="TRANSACTION"   text="Transaction"/>
+                      <core:Item key="CONFIG"        text="Configuration"/>
+                      <core:Item key="AUTHORIZATION" text="Authorization"/>
+                    </Select>
+                    <Button icon="sap-icon://add" tooltip="Ingest errors" press=".onIngestSample"/>
+                  </Toolbar>
+                </headerToolbar>
+
+                <List
+                  id="errorList"
+                  mode="SingleSelectMaster"
+                  selectionChange=".onErrorSelect"
+                  noDataText="No open errors. All clear!"
+                  growing="true"
+                  growingThreshold="15"
+                  items="{
+                    path: 'agent>/errorList',
+                    templateShareable: false
+                  }">
+                  <StandardListItem
+                    title="{agent>errorCode} — {agent>costCenter}"
+                    description="{agent>errorText}"
+                    info="{= ${agent>layer} === 'MASTER_DATA' ? 'Master Data' : ${agent>layer} === 'TRANSACTION' ? 'Transaction' : ${agent>layer} === 'CONFIG' ? 'Config' : ${agent>layer} === 'AUTHORIZATION' ? 'Auth' : 'Unknown' }"
+                    infoState="{= ${agent>layer} === 'MASTER_DATA' ? 'Warning' : ${agent>layer} === 'TRANSACTION' ? 'Error' : ${agent>layer} === 'CONFIG' ? 'Information' : ${agent>layer} === 'AUTHORIZATION' ? 'Error' : 'None' }"
+                    highlight="{= ${agent>status} === 'OPEN' ? 'Error' : ${agent>status} === 'IN_PROGRESS' ? 'Warning' : 'Success' }"
+                    type="Active"/>
+                </List>
+              </Panel>
+
+              <!-- ─── Right Panel: Chat ──────────────────────────────── -->
+              <Panel
+                id="chatPanel"
+                width="70%"
+                height="100%">
+
+                <headerToolbar>
+                  <Toolbar>
+                    <Title id="chatTitle" text="Chat with CORA"/>
+                    <ToolbarSpacer/>
+                    <ObjectStatus
+                      id="errorStatus"
+                      title="Error"
+                      text="{agent>/currentError/errorCode}"
+                      state="{= ${agent>/currentError/layer} === 'TRANSACTION' ? 'Error' : 'Warning' }"
+                      visible="{= !!${agent>/currentError} }"/>
+                    <Button
+                      text="Clear Chat"
+                      icon="sap-icon://delete"
+                      type="Transparent"
+                      press=".onClearChat"/>
+                  </Toolbar>
+                </headerToolbar>
+
+                <VBox fitContainer="true" class="sapUiContentPadding">
+
+                  <!-- Root cause summary strip -->
+                  <MessageStrip
+                    id="rootCauseStrip"
+                    text="{agent>/currentError/rootCauseText}"
+                    type="Warning"
+                    showIcon="true"
+                    visible="{= !!(${agent>/currentError/rootCauseText}) }"/>
+
+                  <!-- Messages area -->
+                  <ScrollContainer
+                    id="chatScroll"
+                    height="420px"
+                    vertical="true"
+                    horizontal="false"
+                    class="sapUiTinyMarginTop sapUiTinyMarginBottom">
+
+                    <List
+                      id="messageList"
+                      showSeparators="None"
+                      items="{
+                        path: 'agent>/messages',
+                        templateShareable: false
+                      }">
+                      <CustomListItem>
+                        <VBox class="{= ${agent>role} === 'user' ? 'coraChatUser' : 'coraChatAssistant' }">
+                          <HBox justifyContent="{= ${agent>role} === 'user' ? 'End' : 'Start' }">
+                            <core:Icon
+                              src="{= ${agent>role} === 'user' ? 'sap-icon://person-placeholder' : 'sap-icon://ai' }"
+                              class="sapUiTinyMarginEnd"
+                              visible="{= ${agent>role} !== 'user' }"/>
+                            <Text
+                              text="{agent>content}"
+                              wrapping="true"
+                              class="coraChatBubble"/>
+                            <core:Icon
+                              src="sap-icon://person-placeholder"
+                              class="sapUiTinyMarginBegin"
+                              visible="{= ${agent>role} === 'user' }"/>
+                          </HBox>
+                          <Text
+                            text="{agent>timestamp}"
+                            class="sapUiTinyMarginTop coraTimestamp"/>
+                        </VBox>
+                      </CustomListItem>
+                    </List>
+                  </ScrollContainer>
+
+                  <!-- Busy indicator -->
+                  <BusyIndicator
+                    id="thinkingIndicator"
+                    size="Small"
+                    visible="{agent>/busy}"
+                    class="sapUiTinyMarginBottom"/>
+
+                  <!-- Suggestions chips -->
+                  <HBox
+                    id="suggestionBar"
+                    wrap="Wrap"
+                    class="sapUiTinyMarginBottom"
+                    visible="{= ${agent>/messages}.length === 0 }">
+                    <Button text="Why did my posting fail?"       type="Emphasized" press=".onSuggestion" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
+                    <Button text="Show open errors"               type="Emphasized" press=".onSuggestion" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
+                    <Button text="Recommend corrective action"    type="Emphasized" press=".onSuggestion" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
+                    <Button text="Top recurring errors this month"type="Emphasized" press=".onSuggestion" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
+                  </HBox>
+
+                  <!-- Recommendations panel -->
+                  <Panel
+                    id="recsPanel"
+                    headerText="AI Recommendations"
+                    expandable="true"
+                    expanded="true"
+                    visible="{= ${agent>/recommendations}.length > 0 }">
+                    <List
+                      id="recsList"
+                      items="{
+                        path: 'agent>/recommendations',
+                        templateShareable: false
+                      }">
+                      <CustomListItem>
+                        <HBox alignItems="Center" class="sapUiTinyMargin">
+                          <ObjectStatus
+                            title="{agent>priority}"
+                            state="{= ${agent>priority} === 'HIGH' ? 'Error' : ${agent>priority} === 'MEDIUM' ? 'Warning' : 'Success' }"
+                            class="sapUiSmallMarginEnd"/>
+                          <VBox growingThreshold="1" class="coraRecItem">
+                            <Title text="{agent>title}" level="H6"/>
+                            <Text text="{agent>description}" wrapping="true"/>
+                            <HBox class="sapUiTinyMarginTop">
+                              <Text text="{= 'Confidence: ' + ${agent>confidence} + '%' }" class="sapUiTinyMarginEnd"/>
+                              <Button
+                                text="Execute"
+                                type="Accept"
+                                enabled="{= ${agent>status} !== 'EXECUTED' }"
+                                press=".onExecuteRecommendation"
+                                class="sapUiTinyMarginEnd"/>
+                              <Button icon="sap-icon://thumb-up"   tooltip="Helpful"     press=".onThumbUp"   type="Transparent"/>
+                              <Button icon="sap-icon://thumb-down" tooltip="Not helpful"  press=".onThumbDown" type="Transparent"/>
+                            </HBox>
+                          </VBox>
+                        </HBox>
+                      </CustomListItem>
+                    </List>
+                  </Panel>
+
+                  <!-- Input area -->
+                  <HBox class="sapUiTinyMarginTop">
+                    <TextArea
+                      id="chatInput"
+                      value="{agent>/inputText}"
+                      placeholder="Ask CORA about a cost center error..."
+                      rows="2"
+                      growing="true"
+                      width="100%"
+                      submit=".onSend"/>
+                    <Button
+                      id="sendBtn"
+                      icon="sap-icon://paper-plane"
+                      type="Emphasized"
+                      press=".onSend"
+                      enabled="{= !${agent>/busy} }"
+                      tooltip="Send message"
+                      class="sapUiTinyMarginBegin"/>
+                  </HBox>
+
+                </VBox>
+              </Panel>
+
+            </l:HorizontalLayout>
+          </content>
+
+        </Page>
+      </pages>
+    </App>
+  </Shell>
+
+</mvc:View>

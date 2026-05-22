@@ -1,0 +1,12 @@
+node_modules/
+gen/
+.env
+*.mtar
+mta_archives/
+dist/
+.DS_Store
+*.sqlite
+*.db
+default-env.json
+default-services.json
+.cds-services.json
