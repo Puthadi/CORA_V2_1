@@ -2,41 +2,65 @@ sap.ui.define([
   "sap/ui/core/mvc/Controller",
   "sap/ui/model/json/JSONModel",
   "sap/m/MessageToast",
-  "sap/m/MessageBox",
-  "sap/ui/core/Fragment"
-], function (Controller, JSONModel, MessageToast, MessageBox, Fragment) {
+  "sap/m/MessageBox"
+], function (Controller, JSONModel, MessageToast, MessageBox) {
   "use strict";
 
-  const AGENT_BASE = "/agent/chat";
-  const ERROR_BASE = "/error";
+  // Works with both the CAP backend (port 4004) and the mock server (port 4005).
+  const BASE  = "";   // relative — works on any host/port
+  const AGENT = BASE + "/agent";
+  const ERROR = BASE + "/error";
 
   return Controller.extend("cc.errorresolution.chat.controller.Main", {
 
+    // ─── Lifecycle ────────────────────────────────────────────────────────
+
     onInit: function () {
-      this._sessionId = this._uuid();
+      this._sessionId   = this._uuid();
+      this._activeLayer = "";
+
+      const model = new JSONModel({
+        sessionId:       this._sessionId,
+        messages:        [],
+        inputText:       "",
+        busy:            false,
+        errorList:       [],
+        currentError:    null,
+        recommendations: [],
+        actions:         [],
+        counts: { MASTER_DATA: 0, TRANSACTION: 0, CONFIG: 0, AUTHORIZATION: 0 },
+      });
+      this.getView().setModel(model, "agent");
+
       this._loadOpenErrors();
     },
 
-    // ─── Error list ────────────────────────────────────────────────────
+    // ─── Error list ────────────────────────────────────────────────────────
 
     _loadOpenErrors: function () {
-      const model = this.getView().getModel("agent");
-      fetch(`${ERROR_BASE}/Errors?$filter=status eq 'OPEN' or status eq 'IN_PROGRESS'&$orderby=createdAt desc&$top=50`)
+      const model  = this.getView().getModel("agent");
+      const filter = this._activeLayer
+        ? `(status eq 'OPEN' or status eq 'IN_PROGRESS') and layer eq '${this._activeLayer}'`
+        : `status eq 'OPEN' or status eq 'IN_PROGRESS'`;
+
+      fetch(`${ERROR}/Errors?$filter=${encodeURIComponent(filter)}&$orderby=createdAt desc&$top=50`)
         .then(r => r.json())
         .then(data => {
-          const errors = (data.value || []).map(e => ({
-            ID:           e.ID,
-            errorCode:    e.errorCode,
-            costCenter:   e.costCenter,
-            companyCode:  e.companyCode,
-            layer:        e.layer,
-            status:       e.status,
-            errorText:    e.errorText,
-            rootCauseText: e.rootCauseText,
-          }));
-          model.setProperty("/errorList", errors);
+          const list = data.value || [];
+          model.setProperty("/errorList", list);
+          this._updateCounts(list);
         })
-        .catch(() => model.setProperty("/errorList", []));
+        .catch(err => {
+          console.warn("Error loading errors:", err);
+          model.setProperty("/errorList", []);
+        });
+    },
+
+    _updateCounts: function (list) {
+      const model  = this.getView().getModel("agent");
+      const counts = { MASTER_DATA: 0, TRANSACTION: 0, CONFIG: 0, AUTHORIZATION: 0 };
+      list.forEach(e => { if (counts[e.layer] !== undefined) counts[e.layer]++; });
+      model.setProperty("/counts", counts);
     },
 
     onRefreshErrors: function () {
@@ -45,19 +69,26 @@ sap.ui.define([
     },
 
     onLayerFilterChange: function (oEvent) {
-      const layer = oEvent.getParameter("selectedItem").getKey();
-      const model = this.getView().getModel("agent");
-      const all   = model.getProperty("/errorList") || [];
-      if (!layer) {
-        model.setProperty("/errorListFiltered", all);
-      } else {
-        model.setProperty("/errorListFiltered", all.filter(e => e.layer === layer));
-      }
+      this._activeLayer = oEvent.getParameter("selectedItem").getKey();
+      this._loadOpenErrors();
+    },
+
+    onClearFilter: function () {
+      this.byId("layerFilter").setSelectedKey("");
+      this._activeLayer = "";
+      this._loadOpenErrors();
+    },
+
+    onChipFilter: function (oEvent) {
+      const src   = oEvent.getSource();
+      const layer = src.data("layer");
+      this._activeLayer = (this._activeLayer === layer) ? "" : layer;
+      this.byId("layerFilter").setSelectedKey(this._activeLayer);
+      this._loadOpenErrors();
     },
 
     onErrorSelect: function (oEvent) {
-      const item  = oEvent.getParameter("listItem");
-      const ctx   = item.getBindingContext("agent");
+      const ctx   = oEvent.getParameter("listItem").getBindingContext("agent");
       const error = ctx.getObject();
       const model = this.getView().getModel("agent");
 
@@ -65,20 +96,18 @@ sap.ui.define([
       model.setProperty("/recommendations",  []);
       model.setProperty("/actions",          []);
 
-      this.byId("chatTitle").setText(`Analyzing: ${error.errorCode} on ${error.costCenter}`);
-
-      // Auto-prompt analysis
+      // Auto-trigger analysis
       const autoMsg = `Analyze this SAP error: ${error.errorCode} — "${error.errorText}" on cost center ${error.costCenter} (${error.companyCode}).`;
-      model.setProperty("/inputText", autoMsg);
+      model.setProperty("/inputText", "");
       this._sendMessage(autoMsg, error.ID);
     },
 
-    // ─── Chat ──────────────────────────────────────────────────────────
+    // ─── Chat ──────────────────────────────────────────────────────────────
 
     onSend: function () {
       const model = this.getView().getModel("agent");
       const text  = (model.getProperty("/inputText") || "").trim();
-      if (!text) return;
+      if (!text || model.getProperty("/busy")) return;
       const errorId = (model.getProperty("/currentError") || {}).ID;
       model.setProperty("/inputText", "");
       this._sendMessage(text, errorId);
@@ -94,40 +123,47 @@ sap.ui.define([
       const model    = this.getView().getModel("agent");
       const messages = model.getProperty("/messages") || [];
 
-      messages.push({ role: "user", content: text, timestamp: this._now() });
+      // Append user bubble
+      messages.push({ role: "user", content: text, timestamp: this._time() });
       model.setProperty("/messages",  messages);
       model.setProperty("/busy",      true);
 
-      fetch(AGENT_BASE, {
+      fetch(`${AGENT}/chat`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({
           input: { sessionId: this._sessionId, message: text, errorId: errorId || null }
         }),
       })
-        .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json(); })
+        .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`); return r.json(); })
         .then(data => {
           const resp = data.value || data;
           const msgs = model.getProperty("/messages");
-          msgs.push({ role: "assistant", content: resp.message, timestamp: this._now() });
+
+          // Append bot bubble
+          msgs.push({ role: "assistant", content: resp.message || "(no response)", timestamp: this._time() });
           model.setProperty("/messages",        msgs);
           model.setProperty("/recommendations", resp.recommendations || []);
-          model.setProperty("/actions",         resp.actions || []);
+          model.setProperty("/actions",         resp.actions        || []);
 
+          // Update error summary
           if (resp.errorSummary) {
-            model.setProperty("/currentError", {
-              ...model.getProperty("/currentError"),
-              ...resp.errorSummary,
-            });
+            const current = model.getProperty("/currentError") || {};
+            model.setProperty("/currentError", { ...current, ...resp.errorSummary });
           }
 
           this._sessionId = resp.sessionId || this._sessionId;
-          this._scrollChatToBottom();
+          this._scrollBottom();
         })
         .catch(err => {
           const msgs = model.getProperty("/messages");
-          msgs.push({ role: "assistant", content: `⚠ Error communicating with CORA: ${err.message}`, timestamp: this._now() });
+          msgs.push({
+            role:      "assistant",
+            content:   `⚠️ Could not reach CORA backend: ${err.message}\n\nMake sure the mock server is running:\n  node test/mock-server.js`,
+            timestamp: this._time(),
+          });
           model.setProperty("/messages", msgs);
+          this._scrollBottom();
         })
         .finally(() => model.setProperty("/busy", false));
     },
@@ -139,53 +175,86 @@ sap.ui.define([
       model.setProperty("/actions",         []);
       model.setProperty("/currentError",    null);
       this._sessionId = this._uuid();
-      this.byId("chatTitle").setText("Chat with CORA");
     },
 
-    // ─── Recommendations ───────────────────────────────────────────────
+    onCloseContext: function () {
+      const model = this.getView().getModel("agent");
+      model.setProperty("/currentError", null);
+    },
+
+    onCollapseRecs: function () {
+      const panel = this.byId("recsPanel");
+      if (panel) panel.setExpanded(!panel.getExpanded());
+    },
+
+    // ─── Recommendations ───────────────────────────────────────────────────
 
     onExecuteRecommendation: function (oEvent) {
       const ctx  = oEvent.getSource().getBindingContext("agent");
       const rec  = ctx.getObject();
+      const path = ctx.getPath();
       const model = this.getView().getModel("agent");
       const errorId = (model.getProperty("/currentError") || {}).ID;
 
       MessageBox.confirm(
         `Execute: "${rec.title}"?\n\n${rec.description}`,
         {
-          title: "Confirm Action",
+          title:   "Confirm Action",
+          actions: [MessageBox.Action.OK, MessageBox.Action.CANCEL],
+          emphasizedAction: MessageBox.Action.OK,
           onClose: (action) => {
             if (action !== MessageBox.Action.OK) return;
-            this._executeAction(rec.actionCode, rec.actionPayload, rec.ID, errorId, ctx.getPath());
+            this._doExecute(rec, errorId, path);
           },
         }
       );
     },
 
-    _executeAction: function (actionCode, actionPayload, recId, errorId, recPath) {
+    _doExecute: function (rec, errorId, recPath) {
       const model = this.getView().getModel("agent");
       model.setProperty("/busy", true);
 
-      fetch(`/agent/executeAction`, {
+      fetch(`${AGENT}/executeAction`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({
-          input: { errorId, recommendationId: recId, actionCode, actionPayload }
+          input: {
+            errorId,
+            recommendationId: rec.ID,
+            actionCode:       rec.actionCode,
+            actionPayload:    rec.actionPayload,
+          }
         }),
       })
         .then(r => r.json())
         .then(data => {
           const result = data.value || data;
+
           if (result.success) {
-            MessageToast.show(result.message || "Action completed successfully.");
+            // Mark recommendation executed in model
             model.setProperty(recPath + "/status", "EXECUTED");
 
-            if (result.fioriUrl) {
-              sap.m.URLHelper.redirect(result.fioriUrl, true);
-            }
+            // Show success in chat
+            const msgs = model.getProperty("/messages");
+            msgs.push({
+              role:      "assistant",
+              content:   `✅ **Action completed:** ${result.message}${result.workflowId ? `\n\nWorkflow ID: **${result.workflowId}**` : ""}`,
+              timestamp: this._time(),
+            });
+            model.setProperty("/messages", msgs);
+            this._scrollBottom();
+
+            // Reload error list to reflect status change
             this._loadOpenErrors();
+
+            if (result.fioriUrl) {
+              MessageBox.information(
+                `Fiori deep-link ready:\n${result.fioriUrl}\n\n(In production, this would open your SAP Fiori Launchpad)`,
+                { title: "Open Fiori App" }
+              );
+            }
           } else {
-            MessageBox.error(result.message || "Action failed. Please try again.");
+            MessageBox.error(result.message || "Action failed.");
           }
         })
         .catch(err => MessageBox.error(`Action failed: ${err.message}`))
@@ -193,60 +262,85 @@ sap.ui.define([
     },
 
     onThumbUp: function (oEvent) {
-      const ctx = oEvent.getSource().getBindingContext("agent");
-      this._submitFeedback(ctx.getObject().ID, true);
+      const rec = oEvent.getSource().getBindingContext("agent").getObject();
+      this._sendFeedback(rec.ID, true);
+      MessageToast.show("Thanks — feedback recorded! 👍");
     },
 
     onThumbDown: function (oEvent) {
-      const ctx = oEvent.getSource().getBindingContext("agent");
-      this._submitFeedback(ctx.getObject().ID, false);
+      const rec = oEvent.getSource().getBindingContext("agent").getObject();
+      this._sendFeedback(rec.ID, false);
+      MessageToast.show("Feedback noted — we'll improve. 👎");
     },
 
-    _submitFeedback: function (recId, helpful) {
-      fetch(`/agent/submitFeedback`, {
+    _sendFeedback: function (recId, helpful) {
+      fetch(`${AGENT}/submitFeedback`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ recommendationId: recId, helpful, rating: helpful ? 5 : 1 }),
-      }).then(() => MessageToast.show(helpful ? "Thanks for the feedback!" : "Feedback recorded — we'll improve."));
+      }).catch(console.warn);
     },
 
-    // ─── Demo: ingest sample errors ────────────────────────────────────
+    // ─── Test data helpers ─────────────────────────────────────────────────
 
     onIngestSample: function () {
       const samples = [
-        { errorCode: "KS113", messageClass: "KS", messageNumber: "113", errorText: "Cost Center CC1000 is blocked for primary postings in period 05/2026", documentNumber: "1800001234", costCenter: "CC1000", companyCode: "1000", controllingArea: "A000", fiscalYear: "2026", fiscalPeriod: "005", userId: "ALICE", processContext: "Manual posting" },
-        { errorCode: "BU011", messageClass: "BU", messageNumber: "011", errorText: "Posting period 05/2026 is closed for account type S in company code 1000", documentNumber: "1800001235", costCenter: "CC2000", companyCode: "1000", controllingArea: "A000", fiscalYear: "2026", fiscalPeriod: "005", userId: "BOB", processContext: "Batch posting" },
-        { errorCode: "KP006", messageClass: "KP", messageNumber: "006", errorText: "Budget exceeded for cost center CC3000, cost element 430000 by EUR 15,000", documentNumber: "", costCenter: "CC3000", companyCode: "1000", controllingArea: "A000", fiscalYear: "2026", fiscalPeriod: "005", userId: "ALICE", processContext: "Purchase order commitment" },
-        { errorCode: "7Q299", messageClass: "7Q", messageNumber: "299", errorText: "User BOB does not have authorization for K_CSKS on cost center CC4000", documentNumber: "", costCenter: "CC4000", companyCode: "1000", controllingArea: "A000", fiscalYear: "2026", fiscalPeriod: "005", userId: "BOB", processContext: "Cost center display" },
+        { errorCode: "KS113", messageClass: "KS", messageNumber: "113", errorText: "Cost Center CC1000 is blocked for primary postings in period 05/2026", documentNumber: "1800001234", costCenter: "CC1000", companyCode: "1000", controllingArea: "A000", fiscalYear: "2026", fiscalPeriod: "005", userId: "SARAH", processContext: "Manual journal entry posting" },
+        { errorCode: "BU011", messageClass: "BU", messageNumber: "011", errorText: "Posting period 05/2026 is closed for account type S in company code 1000", documentNumber: "1800001235", costCenter: "CC2000", companyCode: "1000", controllingArea: "A000", fiscalYear: "2026", fiscalPeriod: "005", userId: "BATCH_JOB", processContext: "Overnight batch posting run" },
+        { errorCode: "KP006", messageClass: "KP", messageNumber: "006", errorText: "Budget exceeded for cost center CC3000, cost element 430000 by EUR 15,000", documentNumber: "", costCenter: "CC3000", companyCode: "1000", controllingArea: "A000", fiscalYear: "2026", fiscalPeriod: "005", userId: "ALICE", processContext: "Purchase order commitment check" },
+        { errorCode: "7Q299", messageClass: "7Q", messageNumber: "299", errorText: "User BOB does not have authorization for object K_CSKS on cost center CC4000", documentNumber: "", costCenter: "CC4000", companyCode: "1000", controllingArea: "A000", fiscalYear: "2026", fiscalPeriod: "005", userId: "BOB", processContext: "Cost center report display" },
         { errorCode: "KI235", messageClass: "KI", messageNumber: "235", errorText: "Cost element 430500 is not assigned to cost center category A for CC5000", documentNumber: "1800001236", costCenter: "CC5000", companyCode: "2000", controllingArea: "A000", fiscalYear: "2026", fiscalPeriod: "005", userId: "ALICE", processContext: "Direct activity allocation" },
+        { errorCode: "KI261", messageClass: "KI", messageNumber: "261", errorText: "Assessment cycle EMEA_IT_ALLOC failed — receiver cost center CC5050 is expired", documentNumber: "", costCenter: "CC5050", companyCode: "1000", controllingArea: "A000", fiscalYear: "2026", fiscalPeriod: "005", userId: "SYSTEM", processContext: "Month-end allocation cycle EMEA_IT_ALLOC" },
+        { errorCode: "KP042", messageClass: "KP", messageNumber: "042", errorText: "Activity type MACH_HR is not assigned to cost center CC2000 for fiscal year 2026", documentNumber: "1800001237", costCenter: "CC2000", companyCode: "1000", controllingArea: "A000", fiscalYear: "2026", fiscalPeriod: "005", userId: "PROD_CTRL", processContext: "Internal order ORDS-2341 machine hours confirmation" },
+        { errorCode: "KS124", messageClass: "KS", messageNumber: "124", errorText: "Cost center CC6000 is not valid on posting date 31.05.2026 — validity expired 28.02.2026", documentNumber: "1800001238", costCenter: "CC6000", companyCode: "1000", controllingArea: "A000", fiscalYear: "2026", fiscalPeriod: "005", userId: "FINANCE_OPS", processContext: "Vendor invoice posting — travel expenses" },
       ];
 
-      fetch(`${ERROR_BASE}/ingest`, {
+      fetch(`${ERROR}/ingest`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ input: { errors: samples } }),
       })
         .then(r => r.json())
         .then(data => {
-          const result = data.value || data;
-          MessageToast.show(`Ingested ${result.created} errors (${result.skipped} skipped as duplicates)`);
+          const r = data.value || data;
+          MessageToast.show(`Ingested ${r.created} errors (${r.skipped} duplicates skipped)`);
           this._loadOpenErrors();
         })
         .catch(err => MessageBox.error(`Ingest failed: ${err.message}`));
     },
 
-    onSettings: function () {
-      MessageToast.show("Settings panel coming in Phase 2.");
+    onResetMock: function () {
+      MessageBox.confirm("Reset all mock data to the initial 8 test errors?", {
+        title: "Reset Mock Data",
+        onClose: (action) => {
+          if (action !== MessageBox.Action.OK) return;
+          fetch(`${BASE}/test/reset`, { method: "POST" })
+            .then(() => {
+              this.onClearChat();
+              this._loadOpenErrors();
+              MessageToast.show("Mock data reset to initial state");
+            })
+            .catch(() => {
+              // Mock server reset not available — just reload
+              this._loadOpenErrors();
+              MessageToast.show("Errors reloaded");
+            });
+        }
+      });
     },
 
-    // ─── Helpers ───────────────────────────────────────────────────────
+    // ─── Utilities ─────────────────────────────────────────────────────────
 
-    _scrollChatToBottom: function () {
+    _scrollBottom: function () {
       const scroll = this.byId("chatScroll");
-      if (scroll) setTimeout(() => scroll.scrollTo(0, 99999), 100);
+      if (!scroll) return;
+      setTimeout(() => {
+        const dom = scroll.getDomRef();
+        if (dom) dom.scrollTop = dom.scrollHeight;
+      }, 80);
     },
 
-    _now: function () {
+    _time: function () {
       return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     },
 

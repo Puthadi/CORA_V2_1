@@ -10,7 +10,8 @@
     "dev": "cds watch",
     "build": "cds build --production",
     "deploy:sqlite": "cds deploy --to sqlite",
-    "test": "jest --testEnvironment node"
+    "test": "jest --testEnvironment node",
+    "mock:start": "node test/mock-server.js"
   },
   "dependencies": {
     "@sap/cds": "^8",
