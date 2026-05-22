@@ -13,7 +13,7 @@
         <!-- ═══════════════════════════════════════════════════════ -->
         <!--  MAIN PAGE                                              -->
         <!-- ═══════════════════════════════════════════════════════ -->
-        <Page id="mainPage" showHeader="true" showNavButton="false">
+        <Page id="mainPage" showHeader="true" showNavButton="false" enableScrolling="false">
 
           <!-- ── Custom Header ──────────────────────────────────── -->
           <customHeader>

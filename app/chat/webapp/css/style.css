@@ -1,16 +1,20 @@
 /* ─── CORA Chat Application Styles ─────────────────────────────────────── */
 
-/* ── Main Layout ─────────────────────────────────────────────────────────── */
+/* ── Main Layout ──────────────────────────────────────────────────────────
+   coraLayout fills the Page content area (below the 3rem header bar).
+   Left panel is a fixed-width sidebar; right panel takes the rest.
+   Both panels are independently scrollable.
+────────────────────────────────────────────────────────────────────────── */
 .coraLayout {
-  height: calc(100vh - 5rem);
-  overflow: hidden;
+  height: calc(100vh - 3rem);
   display: flex;
+  overflow: hidden;
 }
 
+/* ── Left Panel — Error List sidebar ──────────────────────────────────── */
 .coraLeftPanel {
-  width: 350px;
-  min-width: 280px;
-  max-width: 380px;
+  width: 320px;
+  min-width: 240px;
   flex-shrink: 0;
   background: #ffffff;
   border-right: 1px solid #d9d9d9;
@@ -19,16 +23,39 @@
   overflow: hidden;
 }
 
+/* Error list fills remaining sidebar space and scrolls vertically */
+.coraErrorList {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ── Right Panel — Chat, Recommendations, Input ───────────────────────────
+   The right panel scrolls as a whole unit when content overflows.
+   This makes ALL sections (chat + recs + input) accessible.
+────────────────────────────────────────────────────────────────────────── */
 .coraRightPanel {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   background: #fafafa;
 }
 
-/* ── Subheader Count Chips ─────────────────────────────────────────────── */
+/* ── Error Context Bar (selected error summary) ───────────────────────── */
+.coraErrorBar {
+  background: #fff;
+  border-bottom: 1px solid #e8e8e8;
+  padding: 0.5rem 1rem;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* ── Subheader Count Chips ────────────────────────────────────────────── */
 .coraCountBar {
   background: #ffffff;
   border-bottom: 1px solid #e8e8e8;
@@ -51,20 +78,6 @@
 .coraChip-config   { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
 .coraChip-auth     { background: #f3e5f5; color: #6a1b9a; border: 1px solid #ce93d8; }
 
-/* ── Error List ────────────────────────────────────────────────────────── */
-.coraErrorList {
-  flex: 1;
-  overflow-y: auto;
-}
-
-/* ── Error Context Bar ─────────────────────────────────────────────────── */
-.coraErrorBar {
-  background: #fff;
-  border-bottom: 1px solid #e8e8e8;
-  padding: 0.5rem 1rem;
-  flex-shrink: 0;
-}
-
 .coraLayerBadge {
   display: inline-block;
   padding: 0.15rem 0.6rem;
@@ -80,11 +93,16 @@
 .coraLayerBadge-AUTHORIZATION { background: #f3e5f5; color: #6a1b9a; }
 .coraLayerBadge-UNKNOWN       { background: #f5f5f5; color: #666; }
 
-/* ── Chat Messages ──────────────────────────────────────────────────────── */
+/* ── Chat Messages scroll area ────────────────────────────────────────────
+   Fixed viewport-relative height so it doesn't collapse or overflow.
+   Scrolls its own messages independently.
+────────────────────────────────────────────────────────────────────────── */
 .coraChatScroll {
-  flex: 1 1 160px;
-  min-height: 160px;
+  height: 40vh;
+  min-height: 220px;
+  flex-shrink: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 1rem 1.25rem;
   scroll-behavior: smooth;
 }
@@ -96,7 +114,6 @@
   align-items: flex-end;
   margin-bottom: 1rem;
 }
-
 .coraMsgUser .coraMsgRow {
   display: flex;
   align-items: flex-end;
@@ -110,7 +127,6 @@
   align-items: flex-start;
   margin-bottom: 1rem;
 }
-
 .coraMsgBot .coraMsgRow {
   display: flex;
   align-items: flex-start;
@@ -144,7 +160,6 @@
   white-space: pre-wrap;
 }
 
-/* Avatar for bot */
 .coraBotAvatar {
   width: 2rem;
   height: 2rem;
@@ -157,7 +172,6 @@
   margin-top: 0.1rem;
 }
 
-/* Timestamps */
 .coraTimestamp {
   font-size: 0.68rem !important;
   color: #aaa !important;
@@ -165,7 +179,24 @@
   padding: 0 0.25rem;
 }
 
-/* ── Thinking Indicator ─────────────────────────────────────────────────── */
+/* ── Empty state ─────────────────────────────────────────────────────────*/
+.coraEmptyChat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: #999;
+  height: 100%;
+}
+.coraEmptyIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.4;
+}
+
+/* ── Thinking Indicator ──────────────────────────────────────────────────*/
 .coraThinking {
   display: flex;
   align-items: center;
@@ -173,8 +204,8 @@
   padding: 0.5rem 1.25rem;
   color: #666;
   font-size: 0.8rem;
+  flex-shrink: 0;
 }
-
 .coraThinkingDots span {
   display: inline-block;
   width: 0.45rem;
@@ -186,48 +217,44 @@
 }
 .coraThinkingDots span:nth-child(2) { animation-delay: 0.2s; }
 .coraThinkingDots span:nth-child(3) { animation-delay: 0.4s; }
-
 @keyframes coraPulse {
   0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-  40% { transform: scale(1); opacity: 1; }
+  40%           { transform: scale(1);   opacity: 1;   }
 }
 
-/* ── Suggestion Chips ───────────────────────────────────────────────────── */
+/* ── Suggestion Chips ────────────────────────────────────────────────────*/
 .coraSuggestions {
-  padding: 1rem 1.25rem 0.5rem;
+  padding: 0.75rem 1.25rem 0.5rem;
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  flex-shrink: 0;
 }
 
-/* ── Recommendations Panel ─────────────────────────────────────────────── */
+/* ── Recommendations Panel ────────────────────────────────────────────────
+   No max-height cap — the ScrollContainer inside controls the scroll area.
+────────────────────────────────────────────────────────────────────────── */
 .coraRecsPanel {
   background: #ffffff;
   border-top: 2px solid #0a6ed1;
-  flex: 0 0 auto;
-  max-height: 50vh;
+  flex-shrink: 0;
 }
 
-/* ScrollContainer inside the panel — handles both axes */
+/* ScrollContainer wrapping the rec list — both axes */
 .coraRecScrollContainer {
-  height: 340px;
-  max-height: 42vh;
-  overflow-y: auto !important;
-  overflow-x: auto !important;
-  display: block;
-}
-
-/* Ensure the inner content div set by UI5 also scrolls */
-.coraRecScrollContainer > .sapMScrollCont {
-  height: 100% !important;
+  max-height: 55vh;
   overflow-y: auto !important;
   overflow-x: auto !important;
 }
-
+.coraRecScrollContainer > .sapMScrollCont,
 .coraRecScrollContainer > .sapMScrollContScroll {
+  max-height: 55vh;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
   min-width: 520px;
 }
 
+/* Each recommendation card row */
 .coraRecItem {
   padding: 0.85rem 1rem;
   border-bottom: 1px solid #f0f0f0;
@@ -237,8 +264,8 @@
   transition: background 0.15s;
   min-width: 520px;
 }
-.coraRecItem:hover { background: #fafafa; }
-.coraRecItem:last-child { border-bottom: none; }
+.coraRecItem:hover        { background: #f8f8f8; }
+.coraRecItem:last-child   { border-bottom: none; }
 
 .coraRecPriorityBar {
   width: 4px;
@@ -251,7 +278,7 @@
 .coraRecPriorityBar.MEDIUM { background: #e9730c; }
 .coraRecPriorityBar.LOW    { background: #0a6ed1; }
 
-.coraRecContent { flex: 1; min-width: 0; }
+.coraRecContent  { flex: 1; min-width: 0; }
 
 .coraRecTitle {
   font-size: 0.85rem !important;
@@ -259,14 +286,12 @@
   color: #32363a !important;
   margin-bottom: 0.2rem;
 }
-
 .coraRecDesc {
   font-size: 0.78rem !important;
   color: #6c757d !important;
   line-height: 1.4 !important;
   margin-bottom: 0.4rem;
 }
-
 .coraRecMeta {
   display: flex;
   align-items: center;
@@ -274,18 +299,12 @@
   flex-wrap: wrap;
 }
 
-.coraConfBadge {
-  font-size: 0.7rem;
-  color: #555;
-  background: #f0f0f0;
-  padding: 0.1rem 0.4rem;
-  border-radius: 0.6rem;
-}
-.coraConfBadge.high-conf  { background: #e8f5e9; color: #2e7d32; }
-.coraConfBadge.med-conf   { background: #fff8e1; color: #f57f17; }
-.coraConfBadge.low-conf   { background: #fce4ec; color: #c62828; }
+.coraConfBadge           { font-size: 0.7rem; color: #555; background: #f0f0f0; padding: 0.1rem 0.4rem; border-radius: 0.6rem; }
+.coraConfBadge.high-conf { background: #e8f5e9; color: #2e7d32; }
+.coraConfBadge.med-conf  { background: #fff8e1; color: #f57f17; }
+.coraConfBadge.low-conf  { background: #fce4ec; color: #c62828; }
 
-/* ── Input Bar ──────────────────────────────────────────────────────────── */
+/* ── Input Bar — sticky at the bottom of the right panel scroll area ─────*/
 .coraInputBar {
   background: #ffffff;
   border-top: 1px solid #e8e8e8;
@@ -294,9 +313,12 @@
   gap: 0.5rem;
   align-items: flex-end;
   flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
 }
 
-/* ── Executed badge ─────────────────────────────────────────────────────── */
+/* ── Misc ────────────────────────────────────────────────────────────────*/
 .coraExecutedBadge {
   font-size: 0.7rem;
   color: #2e7d32;
@@ -305,8 +327,6 @@
   border-radius: 0.6rem;
   border: 1px solid #a5d6a7;
 }
-
-/* ── Action result toast-style bar ─────────────────────────────────────── */
 .coraActionResult {
   background: #e8f5e9;
   color: #2e7d32;
@@ -317,19 +337,46 @@
   border-left: 3px solid #4caf50;
 }
 
-/* ── Empty state ──────────────────────────────────────────────────────────*/
-.coraEmptyChat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem 1.5rem;
-  text-align: center;
-  color: #999;
+/* ── Responsive — Tablet (≤1024px) ──────────────────────────────────────*/
+@media (max-width: 1024px) {
+  .coraLeftPanel {
+    width: 260px;
+    min-width: 220px;
+  }
+  .coraChatScroll {
+    height: 34vh;
+  }
 }
 
-.coraEmptyIcon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  opacity: 0.4;
+/* ── Responsive — Mobile (≤768px): stack panels vertically ──────────────*/
+@media (max-width: 768px) {
+  .coraLayout {
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - 3rem);
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .coraLeftPanel {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    height: 260px;
+    border-right: none;
+    border-bottom: 2px solid #d9d9d9;
+  }
+  .coraRightPanel {
+    width: 100%;
+    overflow-y: visible;
+  }
+  .coraChatScroll {
+    height: 260px;
+    min-height: 180px;
+  }
+  .coraRecScrollContainer {
+    max-height: 45vh;
+  }
+  .coraInputBar {
+    position: static;
+  }
 }
