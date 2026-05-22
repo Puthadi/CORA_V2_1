@@ -225,7 +225,7 @@
                   alignItems="Center">
                   <core:Icon src="sap-icon://ai" size="1rem" color="#0a6ed1" class="sapUiTinyMarginEnd"/>
                   <Text text="CORA is analyzing" class="sapUiTinyMarginEnd"/>
-                  <HTML content="&lt;span class='coraThinkingDots'&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;/span&gt;"/>
+                  <core:HTML content="&lt;span class='coraThinkingDots'&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;/span&gt;"/>
                 </HBox>
 
                 <!-- ── Suggestions (shown when no messages) ──── -->
