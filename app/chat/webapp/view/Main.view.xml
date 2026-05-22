@@ -260,6 +260,11 @@
                     </Toolbar>
                   </headerToolbar>
 
+                  <ScrollContainer
+                    id="recScrollContainer"
+                    class="coraRecScrollContainer"
+                    vertical="true"
+                    horizontal="true">
                   <List
                     id="recList"
                     showSeparators="None"
@@ -303,6 +308,7 @@
                     </CustomListItem>
 
                   </List>
+                  </ScrollContainer>
                 </Panel>
 
                 <!-- ── Input Bar ──────────────────────────────── -->
