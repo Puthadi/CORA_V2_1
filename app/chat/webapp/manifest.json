@@ -63,22 +63,7 @@
             "actions": []
           }
         }
-      },
-      "errors": {
-        "dataSource": "errorService",
-        "settings": { "synchronizationMode": "None", "operationMode": "Server" }
       }
-    },
-    "routing": {
-      "config": {
-        "routerClass": "sap.m.routing.Router",
-        "viewType": "XML",
-        "viewPath": "cc.errorresolution.chat.view",
-        "controlId": "mainNav",
-        "controlAggregation": "pages"
-      },
-      "routes": [{ "name": "main", "pattern": "", "target": "main" }],
-      "targets": { "main": { "viewId": "main", "viewName": "Main" } }
     }
   }
 }
