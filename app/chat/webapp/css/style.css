@@ -1,382 +1,678 @@
-/* ─── CORA Chat Application Styles ─────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════
+   CORA — Cost Center Error Resolution Agent
+   Design System: SAP Fiori Horizon · custom dark-navy header
+   ═══════════════════════════════════════════════════════════════════════ */
 
-/* ── Main Layout ──────────────────────────────────────────────────────────
-   coraLayout fills the Page content area (below the 3rem header bar).
-   Left panel is a fixed-width sidebar; right panel takes the rest.
-   Both panels are independently scrollable.
-────────────────────────────────────────────────────────────────────────── */
+/* ── Design tokens ───────────────────────────────────────────────────── */
+:root {
+  --cora-navy:        #0d1b2a;
+  --cora-blue:        #0a6ed1;
+  --cora-blue-light:  #e8f3ff;
+  --cora-surface:     #ffffff;
+  --cora-bg:          #f0f2f5;
+  --cora-border:      #e0e3e8;
+  --cora-text:        #1d2129;
+  --cora-muted:       #6a7282;
+  --cora-error:       #c62828;
+  --cora-warn:        #e9730c;
+  --cora-ok:          #256f3a;
+  --cora-master:      #e65100;
+  --cora-trans:       #c62828;
+  --cora-config:      #1565c0;
+  --cora-auth:        #6a1b9a;
+  --cora-radius:      0.625rem;
+  --cora-shadow-sm:   0 1px 4px rgba(0,0,0,.08);
+  --cora-shadow-md:   0 4px 16px rgba(0,0,0,.10);
+  --cora-shadow-lg:   0 8px 32px rgba(0,0,0,.14);
+}
+
+/* ── Header bar ──────────────────────────────────────────────────────── */
+.coraHeader.sapMBar {
+  background: linear-gradient(135deg, #0d1b2a 0%, #1a3350 100%) !important;
+  border-bottom: 1px solid rgba(255,255,255,.08) !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,.3) !important;
+}
+
+/* Logo circle */
+.coraLogoCircle {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--cora-blue), #7950f2);
+  flex-shrink: 0;
+  margin-right: 0.625rem;
+  box-shadow: 0 2px 8px rgba(10,110,209,.4);
+}
+
+.coraLogoTitle {
+  color: #ffffff !important;
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.03em;
+  line-height: 1.2 !important;
+}
+
+.coraLogoSub {
+  color: rgba(255,255,255,.55) !important;
+  font-size: 0.7rem !important;
+  line-height: 1.2 !important;
+}
+
+/* Layer chips in header */
+.coraLayerChips { gap: 0.25rem; }
+
+.coraChip.sapMBtn {
+  border-radius: 1.25rem !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  padding: 0.2rem 0.75rem !important;
+  height: 1.75rem !important;
+  min-width: unset !important;
+  transition: all .15s;
+}
+.coraChip-md.sapMBtn { color: #ffb74d !important; border: 1px solid rgba(255,183,77,.35) !important; }
+.coraChip-tr.sapMBtn { color: #ef9a9a !important; border: 1px solid rgba(239,154,154,.35) !important; }
+.coraChip-cf.sapMBtn { color: #90caf9 !important; border: 1px solid rgba(144,202,249,.35) !important; }
+.coraChip-au.sapMBtn { color: #ce93d8 !important; border: 1px solid rgba(206,147,216,.35) !important; }
+.coraChip.sapMBtn:hover { background: rgba(255,255,255,.08) !important; }
+
+.coraHdrIconBtn.sapMBtn .sapMBtnIcon { color: rgba(255,255,255,.75) !important; }
+.coraHdrIconBtn.sapMBtn:hover .sapMBtnIcon { color: #ffffff !important; }
+
+/* ── Two-column layout ───────────────────────────────────────────────── */
 .coraLayout {
   height: calc(100vh - 3rem);
   display: flex;
   overflow: hidden;
+  background: var(--cora-bg);
 }
 
-/* ── Left Panel — Error List sidebar ──────────────────────────────────── */
-.coraLeftPanel {
+/* ── Left pane — Error Queue ─────────────────────────────────────────── */
+.coraLeftPane {
   width: 320px;
   min-width: 240px;
   flex-shrink: 0;
-  background: #ffffff;
-  border-right: 1px solid #d9d9d9;
+  background: var(--cora-surface);
+  border-right: 1px solid var(--cora-border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
-/* Error list fills remaining sidebar space and scrolls vertically */
-.coraErrorList {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+.coraQueueHeader {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--cora-border);
+  background: var(--cora-surface);
+  flex-shrink: 0;
 }
 
-/* ── Right Panel — Chat, Recommendations, Input ───────────────────────────
-   The right panel scrolls as a whole unit when content overflows.
-   This makes ALL sections (chat + recs + input) accessible.
-────────────────────────────────────────────────────────────────────────── */
-.coraRightPanel {
+.coraQueueTitle {
+  font-size: 0.9rem !important;
+  font-weight: 700 !important;
+  color: var(--cora-text) !important;
+}
+
+.coraQueueSubtitle {
+  font-size: 0.72rem !important;
+  color: var(--cora-muted) !important;
+  margin-top: 0.1rem;
+}
+
+.coraLayerSelect.sapMSelect {
+  font-size: 0.75rem !important;
+  height: 1.75rem !important;
+}
+
+/* Error list */
+.coraErrorList { flex: 1; overflow-y: auto; overflow-x: hidden; }
+
+/* Individual error card */
+.coraErrCard.sapMLIB {
+  padding: 0 !important;
+  margin: 0.375rem 0.625rem !important;
+  border-radius: var(--cora-radius) !important;
+  border: 1px solid var(--cora-border) !important;
+  background: var(--cora-surface) !important;
+  overflow: hidden;
+  transition: all .18s ease;
+}
+.coraErrCard.sapMLIB:hover,
+.coraErrCard.sapMLIBSelected {
+  border-color: var(--cora-blue) !important;
+  box-shadow: 0 0 0 2px rgba(10,110,209,.15), var(--cora-shadow-md) !important;
+}
+
+.coraErrCardInner { height: 100%; }
+
+.coraErrAccent {
+  width: 5px;
+  min-height: 4.5rem;
+  flex-shrink: 0;
+}
+
+.coraErrCardBody {
+  padding: 0.625rem 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.coraErrCardRow1 { margin-bottom: 0.15rem; }
+
+.coraErrCode {
+  font-size: 0.88rem !important;
+  font-weight: 700 !important;
+  color: var(--cora-text) !important;
+  letter-spacing: 0.01em;
+}
+
+.coraErrStatusBadge.sapMObjStatus { font-size: 0.66rem !important; }
+
+.coraErrCC {
+  font-size: 0.73rem !important;
+  color: var(--cora-muted) !important;
+  margin-bottom: 0.15rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.coraErrText {
+  font-size: 0.75rem !important;
+  color: #444 !important;
+  margin-bottom: 0.3rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.coraErrCardRow3 { margin-top: 0.2rem; }
+.coraErrLayerTag.sapMObjStatus { font-size: 0.65rem !important; }
+.coraErrPeriod {
+  font-size: 0.65rem !important;
+  color: #bbb !important;
+}
+
+/* ── Right / Main pane ───────────────────────────────────────────────── */
+.coraMainPane {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
-  background: #fafafa;
+  background: var(--cora-bg);
 }
 
-/* ── Error Context Bar (selected error summary) ───────────────────────── */
-.coraErrorBar {
-  background: #fff;
-  border-bottom: 1px solid #e8e8e8;
-  padding: 0.5rem 1rem;
-  flex-shrink: 0;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-/* ── Subheader Count Chips ────────────────────────────────────────────── */
-.coraCountBar {
-  background: #ffffff;
-  border-bottom: 1px solid #e8e8e8;
-  padding: 0.4rem 1rem;
-}
-
-.coraChip {
-  display: inline-flex;
+/* ── Welcome dashboard ───────────────────────────────────────────────── */
+.coraWelcome {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 1rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  margin-right: 0.5rem;
-  cursor: default;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  gap: 2rem;
 }
-.coraChip-master   { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
-.coraChip-trans    { background: #fde8e8; color: #c62828; border: 1px solid #ef9a9a; }
-.coraChip-config   { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
-.coraChip-auth     { background: #f3e5f5; color: #6a1b9a; border: 1px solid #ce93d8; }
 
-.coraLayerBadge {
-  display: inline-block;
-  padding: 0.15rem 0.6rem;
-  border-radius: 0.8rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-.coraLayerBadge-MASTER_DATA   { background: #fff3e0; color: #e65100; }
-.coraLayerBadge-TRANSACTION   { background: #fde8e8; color: #c62828; }
-.coraLayerBadge-CONFIG        { background: #e3f2fd; color: #1565c0; }
-.coraLayerBadge-AUTHORIZATION { background: #f3e5f5; color: #6a1b9a; }
-.coraLayerBadge-UNKNOWN       { background: #f5f5f5; color: #666; }
+.coraWelcomeBrand { gap: 1.25rem; }
 
-/* ── Chat Messages scroll area ────────────────────────────────────────────
-   Fixed viewport-relative height so it doesn't collapse or overflow.
-   Scrolls its own messages independently.
-────────────────────────────────────────────────────────────────────────── */
-.coraChatScroll {
-  height: 40vh;
-  min-height: 220px;
+.coraWelcomeAvatar {
+  width: 5rem;
+  height: 5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--cora-blue), #7950f2);
   flex-shrink: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 1rem 1.25rem;
-  scroll-behavior: smooth;
+  box-shadow: 0 6px 24px rgba(10,110,209,.35);
 }
 
-/* User message: right-aligned */
-.coraMsgUser {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  margin-bottom: 1rem;
-}
-.coraMsgUser .coraMsgRow {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.5rem;
+.coraWelcomeTitle {
+  font-size: 1.75rem !important;
+  font-weight: 700 !important;
+  color: var(--cora-text) !important;
+  line-height: 1.2 !important;
 }
 
-/* Bot message: left-aligned */
-.coraMsgBot {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  margin-bottom: 1rem;
-}
-.coraMsgBot .coraMsgRow {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
+.coraWelcomeSub {
+  font-size: 0.9rem !important;
+  color: var(--cora-muted) !important;
+  margin-top: 0.25rem;
+  max-width: 26rem;
 }
 
-/* Chat bubbles */
-.coraBubbleUser {
-  background: #0a6ed1;
-  color: #ffffff !important;
-  padding: 0.625rem 1rem;
-  border-radius: 1.25rem 1.25rem 0.25rem 1.25rem;
-  max-width: 65%;
-  word-wrap: break-word;
-  font-size: 0.875rem !important;
+/* KPI tiles row */
+.coraKpiRow { gap: 1rem; }
+
+.coraKpiTile {
+  background: var(--cora-surface);
+  border: 1px solid var(--cora-border);
+  border-radius: var(--cora-radius);
+  padding: 1.25rem 1.75rem;
+  gap: 0.35rem;
+  box-shadow: var(--cora-shadow-sm);
+  min-width: 120px;
+  transition: transform .15s, box-shadow .15s;
+}
+.coraKpiTile:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--cora-shadow-md);
+}
+.coraKpi-md { border-top: 3px solid var(--cora-master); }
+.coraKpi-tr { border-top: 3px solid var(--cora-trans);  }
+.coraKpi-cf { border-top: 3px solid var(--cora-config); }
+.coraKpi-au { border-top: 3px solid var(--cora-auth);   }
+
+.coraKpiNum {
+  font-size: 2rem !important;
+  font-weight: 700 !important;
+  color: var(--cora-text) !important;
+  line-height: 1 !important;
+  margin-top: 0.4rem;
+}
+
+.coraKpiLbl {
+  font-size: 0.75rem !important;
+  color: var(--cora-muted) !important;
+  font-weight: 500 !important;
+  margin-top: 0.15rem;
+}
+
+/* Suggestion chips */
+.coraSuggestSection { gap: 0.75rem; }
+
+.coraSuggestHeading {
+  font-size: 0.78rem !important;
+  color: var(--cora-muted) !important;
+  font-weight: 500 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.coraSuggestRow { gap: 0.5rem; }
+
+.coraSuggestBtn.sapMBtn {
+  border-radius: 1.25rem !important;
+  font-size: 0.78rem !important;
+  border-color: var(--cora-border) !important;
+  color: var(--cora-blue) !important;
+  transition: all .15s;
+}
+.coraSuggestBtn.sapMBtn:hover {
+  background: var(--cora-blue-light) !important;
+  border-color: var(--cora-blue) !important;
+}
+
+/* ── Error Detail Card ───────────────────────────────────────────────── */
+.coraDetailCard {
+  background: var(--cora-surface);
+  border-bottom: 1px solid var(--cora-border);
+  flex-shrink: 0;
+  box-shadow: var(--cora-shadow-sm);
+}
+
+.coraDetailCardHead {
+  padding: 1rem 1.25rem 0.75rem;
+  gap: 0.75rem;
+}
+
+.coraDetailIconBox {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #c62828, #e53935);
+  flex-shrink: 0;
+  margin-right: 0.75rem;
+  margin-top: 0.15rem;
+  box-shadow: 0 2px 8px rgba(198,40,40,.3);
+}
+
+.coraDetailCode {
+  font-size: 1.15rem !important;
+  font-weight: 700 !important;
+  color: var(--cora-text) !important;
+  letter-spacing: 0.01em;
+}
+
+.coraDetailErrText {
+  font-size: 0.82rem !important;
+  color: var(--cora-muted) !important;
+  margin-top: 0.2rem;
   line-height: 1.5 !important;
-  box-shadow: 0 1px 3px rgba(10,110,209,0.25);
 }
+
+/* Metadata grid */
+.coraMetaGrid {
+  padding: 0 1.25rem 0.875rem;
+  gap: 0;
+}
+
+.coraMetaCell {
+  flex: 0 0 33.33%;
+  padding: 0.5rem 0.75rem;
+  border-right: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.coraMetaCell:nth-child(3n) { border-right: none; }
+.coraMetaCell:nth-last-child(-n+3) { border-bottom: none; }
+
+.coraMetaLabel {
+  font-size: 0.62rem !important;
+  color: #aab0bb !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  margin-bottom: 0.2rem;
+}
+
+.coraMetaValue {
+  font-size: 0.82rem !important;
+  color: var(--cora-text) !important;
+  font-weight: 600 !important;
+}
+
+/* Root cause strip */
+.coraRootCauseStrip.sapMMessageStrip {
+  margin: 0 1.25rem 0.875rem !important;
+  border-radius: 0.4rem !important;
+}
+
+/* ── AI Recommendations ──────────────────────────────────────────────── */
+.coraRecsSection {
+  background: var(--cora-surface);
+  border-bottom: 1px solid var(--cora-border);
+  flex-shrink: 0;
+  box-shadow: var(--cora-shadow-sm);
+}
+
+.coraRecsSectionHead {
+  padding: 0.75rem 1.25rem 0.5rem;
+}
+
+.coraRecsSectionTitle {
+  font-size: 0.88rem !important;
+  font-weight: 700 !important;
+  color: var(--cora-text) !important;
+}
+
+.coraRecsSectionCount {
+  font-size: 0.72rem !important;
+  color: var(--cora-muted) !important;
+  margin-left: 0.4rem;
+}
+
+/* Horizontal scroll container */
+.coraRecHScroll.sapMScrollCont {
+  width: 100%;
+}
+
+.coraRecCardRow.sapMFlexBox {
+  padding: 0.5rem 1rem 1rem;
+  gap: 1rem;
+  min-width: max-content;
+}
+
+/* Individual recommendation card */
+.coraRecCard.sapMFlexBox {
+  width: 300px !important;
+  flex-shrink: 0 !important;
+  background: var(--cora-surface);
+  border: 1px solid var(--cora-border);
+  border-radius: var(--cora-radius);
+  padding: 1rem !important;
+  gap: 0.625rem;
+  box-shadow: var(--cora-shadow-sm);
+  transition: transform .15s, box-shadow .15s;
+}
+.coraRecCard.sapMFlexBox:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--cora-shadow-md);
+}
+
+.coraRecCardTopRow { margin-bottom: 0.25rem; }
+
+.coraRecPrioTag.sapMObjStatus { font-size: 0.7rem !important; font-weight: 700 !important; }
+
+/* Confidence badge */
+.coraConfChip {
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  padding: 0.15rem 0.5rem;
+  border-radius: 1rem;
+}
+.coraConfHigh { background: #e8f5e9; color: #2e7d32; }
+.coraConfMed  { background: #fff8e1; color: #e65100; }
+.coraConfLow  { background: #fce4ec; color: #c62828; }
+
+.coraRecCardTitle {
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  color: var(--cora-text) !important;
+  line-height: 1.35 !important;
+}
+
+.coraRecCardDesc {
+  font-size: 0.75rem !important;
+  color: var(--cora-muted) !important;
+  line-height: 1.5 !important;
+  flex: 1;
+}
+
+.coraRecConfBarWrap { margin: 0.25rem 0; }
+.coraRecConfBar.sapMPI { height: 6px !important; border-radius: 3px !important; }
+
+.coraRecCardActions { margin-top: 0.25rem; }
+.coraRecExecBtn.sapMBtn {
+  font-size: 0.75rem !important;
+  border-radius: 0.4rem !important;
+}
+
+/* ── Chat Section ────────────────────────────────────────────────────── */
+.coraChatSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #f7f9fc;
+}
+
+.coraChatSectionHead {
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--cora-border);
+  background: var(--cora-surface);
+  flex-shrink: 0;
+}
+
+/* Bot avatar (small, used in header + bubbles) */
+.coraChatAvatarSm,
+.coraBotAvatar {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--cora-blue), #7950f2);
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(10,110,209,.3);
+}
+.coraChatAvatarSm { margin-right: 0.5rem; }
+.coraBotAvatar    { margin-right: 0.625rem; margin-top: 0.1rem; }
+
+.coraChatSectionTitle {
+  font-size: 0.88rem !important;
+  font-weight: 700 !important;
+  color: var(--cora-text) !important;
+}
+
+/* Messages scroll */
+.coraChatScroll.sapMScrollCont {
+  flex: 1;
+  min-height: 180px;
+  height: 38vh;
+}
+
+/* Empty state */
+.coraEmptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+.coraEmptyHint {
+  font-size: 0.82rem !important;
+  color: #b0b8c6 !important;
+  max-width: 26rem;
+  line-height: 1.6 !important;
+}
+
+/* List + item resets */
+.coraMsgListItem.sapMLIB {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+}
+.coraMsgListItem.sapMLIB:hover { background: transparent !important; }
+
+/* USER message */
+.coraMsgUser {
+  padding: 0.25rem 1rem 0.1rem;
+  align-items: flex-end;
+}
+
+/* ASSISTANT message */
+.coraMsgBot {
+  padding: 0.25rem 1rem 0.1rem;
+}
+
+/* Bubbles */
+.coraBubbleUser {
+  background: linear-gradient(135deg, #0a6ed1, #1976d2) !important;
+  color: #ffffff !important;
+  padding: 0.625rem 1rem !important;
+  border-radius: 1.25rem 1.25rem 0.25rem 1.25rem !important;
+  max-width: 68%;
+  word-wrap: break-word;
+  font-size: 0.85rem !important;
+  line-height: 1.55 !important;
+  box-shadow: 0 2px 8px rgba(10,110,209,.25);
+}
+
+.coraBotContent { min-width: 0; }
 
 .coraBubbleBot {
-  background: #ffffff;
-  color: #32363a !important;
-  padding: 0.75rem 1rem;
-  border-radius: 0.25rem 1.25rem 1.25rem 1.25rem;
-  max-width: 75%;
+  background: var(--cora-surface) !important;
+  color: var(--cora-text) !important;
+  padding: 0.75rem 1rem !important;
+  border-radius: 0.25rem 1.25rem 1.25rem 1.25rem !important;
+  max-width: 78%;
   word-wrap: break-word;
-  font-size: 0.875rem !important;
-  line-height: 1.6 !important;
-  border: 1px solid #e5e5e5;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  font-size: 0.85rem !important;
+  line-height: 1.65 !important;
+  border: 1px solid var(--cora-border) !important;
+  box-shadow: var(--cora-shadow-sm);
   white-space: pre-wrap;
 }
 
-.coraBotAvatar {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #0a6ed1, #7950f2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-top: 0.1rem;
-}
-
-.coraTimestamp {
-  font-size: 0.68rem !important;
-  color: #aaa !important;
-  margin-top: 0.25rem;
+.coraTs {
+  font-size: 0.64rem !important;
+  color: #c0c6d2 !important;
+  margin-top: 0.2rem;
   padding: 0 0.25rem;
 }
 
-/* ── Empty state ─────────────────────────────────────────────────────────*/
-.coraEmptyChat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem 1.5rem;
-  text-align: center;
-  color: #999;
-  height: 100%;
-}
-.coraEmptyIcon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  opacity: 0.4;
-}
-
-/* ── Thinking Indicator ──────────────────────────────────────────────────*/
-.coraThinking {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+/* Thinking indicator */
+.coraThinkingRow {
   padding: 0.5rem 1.25rem;
-  color: #666;
-  font-size: 0.8rem;
-  flex-shrink: 0;
-}
-.coraThinkingDots span {
-  display: inline-block;
-  width: 0.45rem;
-  height: 0.45rem;
-  border-radius: 50%;
-  background: #0a6ed1;
-  margin: 0 0.1rem;
-  animation: coraPulse 1.4s infinite ease-in-out;
-}
-.coraThinkingDots span:nth-child(2) { animation-delay: 0.2s; }
-.coraThinkingDots span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes coraPulse {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-  40%           { transform: scale(1);   opacity: 1;   }
-}
-
-/* ── Suggestion Chips ────────────────────────────────────────────────────*/
-.coraSuggestions {
-  padding: 0.75rem 1.25rem 0.5rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.625rem;
   flex-shrink: 0;
 }
 
-/* ── Recommendations Panel ────────────────────────────────────────────────
-   No max-height cap — the ScrollContainer inside controls the scroll area.
-────────────────────────────────────────────────────────────────────────── */
-.coraRecsPanel {
-  background: #ffffff;
-  border-top: 2px solid #0a6ed1;
-  flex-shrink: 0;
-}
-
-/* ScrollContainer wrapping the rec list — both axes */
-.coraRecScrollContainer {
-  max-height: 55vh;
-  overflow-y: auto !important;
-  overflow-x: auto !important;
-}
-.coraRecScrollContainer > .sapMScrollCont,
-.coraRecScrollContainer > .sapMScrollContScroll {
-  max-height: 55vh;
-  overflow-y: auto !important;
-  overflow-x: auto !important;
-  min-width: 520px;
-}
-
-/* Each recommendation card row */
-.coraRecItem {
-  padding: 0.85rem 1rem;
-  border-bottom: 1px solid #f0f0f0;
-  display: flex;
-  gap: 0.75rem;
-  align-items: flex-start;
-  transition: background 0.15s;
-  min-width: 520px;
-}
-.coraRecItem:hover        { background: #f8f8f8; }
-.coraRecItem:last-child   { border-bottom: none; }
-
-.coraRecPriorityBar {
-  width: 4px;
-  min-height: 3rem;
-  border-radius: 2px;
-  flex-shrink: 0;
-  margin-top: 0.15rem;
-}
-.coraRecPriorityBar.HIGH   { background: #bb0000; }
-.coraRecPriorityBar.MEDIUM { background: #e9730c; }
-.coraRecPriorityBar.LOW    { background: #0a6ed1; }
-
-.coraRecContent  { flex: 1; min-width: 0; }
-
-.coraRecTitle {
-  font-size: 0.85rem !important;
-  font-weight: 600 !important;
-  color: #32363a !important;
-  margin-bottom: 0.2rem;
-}
-.coraRecDesc {
+.coraThinkingText {
   font-size: 0.78rem !important;
-  color: #6c757d !important;
-  line-height: 1.4 !important;
-  margin-bottom: 0.4rem;
-}
-.coraRecMeta {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  color: var(--cora-muted) !important;
+  font-style: italic;
 }
 
-.coraConfBadge           { font-size: 0.7rem; color: #555; background: #f0f0f0; padding: 0.1rem 0.4rem; border-radius: 0.6rem; }
-.coraConfBadge.high-conf { background: #e8f5e9; color: #2e7d32; }
-.coraConfBadge.med-conf  { background: #fff8e1; color: #f57f17; }
-.coraConfBadge.low-conf  { background: #fce4ec; color: #c62828; }
+.coraDots span {
+  display: inline-block;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--cora-blue);
+  margin: 0 0.1rem;
+  animation: coraDotsAnim 1.4s infinite ease-in-out;
+}
+.coraDots span:nth-child(2) { animation-delay: .2s; }
+.coraDots span:nth-child(3) { animation-delay: .4s; }
 
-/* ── Input Bar — sticky at the bottom of the right panel scroll area ─────*/
+@keyframes coraDotsAnim {
+  0%, 80%, 100% { transform: scale(0.55); opacity: .35; }
+  40%           { transform: scale(1);    opacity: 1;   }
+}
+
+/* ── Input bar — sticky at bottom of coraMainPane ────────────────────── */
 .coraInputBar {
-  background: #ffffff;
-  border-top: 1px solid #e8e8e8;
+  background: var(--cora-surface);
+  border-top: 1px solid var(--cora-border);
   padding: 0.75rem 1rem;
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-end;
+  gap: 0.625rem;
   flex-shrink: 0;
   position: sticky;
   bottom: 0;
   z-index: 20;
+  box-shadow: 0 -2px 10px rgba(0,0,0,.06);
 }
 
-/* ── Misc ────────────────────────────────────────────────────────────────*/
-.coraExecutedBadge {
-  font-size: 0.7rem;
-  color: #2e7d32;
-  background: #e8f5e9;
-  padding: 0.1rem 0.5rem;
-  border-radius: 0.6rem;
-  border: 1px solid #a5d6a7;
+.coraInputArea.sapMTextArea textarea {
+  border-radius: 0.75rem !important;
+  border-color: var(--cora-border) !important;
+  font-size: 0.85rem !important;
+  line-height: 1.5 !important;
+  resize: none;
+  transition: border-color .15s;
 }
-.coraActionResult {
-  background: #e8f5e9;
-  color: #2e7d32;
-  padding: 0.5rem 1rem;
-  border-radius: 0.4rem;
-  font-size: 0.8rem;
-  margin: 0 1rem 0.5rem;
-  border-left: 3px solid #4caf50;
+.coraInputArea.sapMTextArea textarea:focus {
+  border-color: var(--cora-blue) !important;
+  box-shadow: 0 0 0 2px rgba(10,110,209,.15) !important;
 }
 
-/* ── Responsive — Tablet (≤1024px) ──────────────────────────────────────*/
+.coraInputBtns {
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.coraSendBtn.sapMBtn {
+  border-radius: 0.625rem !important;
+  width: 2.5rem !important;
+  height: 2.5rem !important;
+}
+
+/* ── Responsive — Tablet ≤ 1024px ────────────────────────────────────── */
 @media (max-width: 1024px) {
-  .coraLeftPanel {
-    width: 260px;
-    min-width: 220px;
-  }
-  .coraChatScroll {
-    height: 34vh;
-  }
+  .coraLeftPane  { width: 270px; min-width: 210px; }
+  .coraRecCard.sapMFlexBox { width: 260px !important; }
+  .coraBubbleUser, .coraBubbleBot { max-width: 85% !important; }
 }
 
-/* ── Responsive — Mobile (≤768px): stack panels vertically ──────────────*/
+/* ── Responsive — Mobile ≤ 768px (stack panels) ─────────────────────── */
 @media (max-width: 768px) {
   .coraLayout {
     flex-direction: column;
     height: auto;
     min-height: calc(100vh - 3rem);
     overflow-y: auto;
-    overflow-x: hidden;
   }
-  .coraLeftPanel {
+  .coraLeftPane {
     width: 100% !important;
     min-width: 100% !important;
-    max-width: 100% !important;
-    height: 260px;
+    height: 240px;
     border-right: none;
-    border-bottom: 2px solid #d9d9d9;
+    border-bottom: 2px solid var(--cora-border);
   }
-  .coraRightPanel {
-    width: 100%;
-    overflow-y: visible;
-  }
-  .coraChatScroll {
-    height: 260px;
-    min-height: 180px;
-  }
-  .coraRecScrollContainer {
-    max-height: 45vh;
-  }
-  .coraInputBar {
-    position: static;
-  }
+  .coraMainPane { overflow-y: visible; }
+  .coraChatSection { min-height: 400px; }
+  .coraChatScroll.sapMScrollCont { height: 240px; }
+  .coraMetaCell { flex: 0 0 50%; }
+  .coraMetaCell:nth-child(3n)  { border-right: 1px solid #f0f0f0; }
+  .coraMetaCell:nth-child(2n)  { border-right: none; }
+  .coraLayerChips { display: none; }
+  .coraInputBar { position: static; }
 }
