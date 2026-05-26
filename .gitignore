@@ -10,3 +10,6 @@ dist/
 default-env.json
 default-services.json
 .cds-services.json
+*.png
+test/screenshots/
+package-lock.json

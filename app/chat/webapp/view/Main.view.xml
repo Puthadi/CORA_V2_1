@@ -154,57 +154,174 @@
                 <VBox class="coraWelcome"
                   visible="{= !${agent>/currentError} &amp;&amp; ${agent>/messages}.length === 0 }">
 
-                  <!-- Brand row -->
-                  <HBox class="coraWelcomeBrand" alignItems="Center" justifyContent="Center">
-                    <VBox class="coraWelcomeAvatar" justifyContent="Center" alignItems="Center">
-                      <core:Icon src="sap-icon://ai" size="2.2rem" color="#ffffff"/>
-                    </VBox>
-                    <VBox class="coraWelcomeWords">
-                      <Title text="Hello, I'm CORA" level="H2" class="coraWelcomeTitle"/>
-                      <Text text="AI-powered SAP Cost Center Error Resolution Agent"
-                        class="coraWelcomeSub" wrapping="true"/>
-                    </VBox>
-                  </HBox>
+                  <!-- ── Hero Banner ── -->
+                  <VBox class="coraHeroBanner">
+                    <HBox class="coraHeroContent" alignItems="Center" justifyContent="SpaceBetween">
 
-                  <!-- KPI tiles -->
+                      <HBox alignItems="Center" class="coraHeroBrand">
+                        <VBox class="coraHeroAvatar" justifyContent="Center" alignItems="Center">
+                          <core:Icon src="sap-icon://ai" size="2.8rem" color="#ffffff"/>
+                        </VBox>
+                        <VBox class="coraHeroText">
+                          <Title text="Hello, I'm CORA" level="H1" class="coraHeroTitle"/>
+                          <Text text="AI-Powered SAP Cost Center Error Resolution Agent"
+                            class="coraHeroSub" wrapping="true"/>
+                          <HBox class="coraHeroStatusRow" alignItems="Center">
+                            <core:HTML content="&lt;span class='coraStatusDot coraStatusGreen'&gt;&lt;/span&gt;"/>
+                            <Text text="Online" class="coraHeroStatusTxt"/>
+                            <Text text=" · " class="coraHeroStatusSep"/>
+                            <Text text="{= ${agent>/errorList}.length + ' errors monitored'}"
+                              class="coraHeroStatusTxt"/>
+                            <Text text=" · " class="coraHeroStatusSep"/>
+                            <core:HTML content="&lt;span class='coraStatusDot coraStatusBlue'&gt;&lt;/span&gt;"/>
+                            <Text text="AI Ready" class="coraHeroStatusTxt"/>
+                          </HBox>
+                        </VBox>
+                      </HBox>
+
+                      <VBox class="coraHeroBadges" alignItems="End">
+                        <core:HTML content="&lt;span class='coraHeroBadge'&gt;Claude AI&lt;/span&gt;"/>
+                        <core:HTML content="&lt;span class='coraHeroBadge'&gt;SAP BTP&lt;/span&gt;"/>
+                        <core:HTML content="&lt;span class='coraHeroBadge'&gt;S/4HANA&lt;/span&gt;"/>
+                      </VBox>
+
+                    </HBox>
+                  </VBox>
+
+                  <!-- ── KPI Tiles ── -->
                   <HBox class="coraKpiRow" wrap="Wrap" justifyContent="Center">
 
                     <VBox class="coraKpiTile coraKpi-md" alignItems="Center">
-                      <core:Icon src="sap-icon://database"  size="1.6rem" color="#e65100"/>
+                      <VBox class="coraKpiIconBox coraKpiIconBox-md" justifyContent="Center" alignItems="Center">
+                        <core:Icon src="sap-icon://database" size="1.4rem" color="#e65100"/>
+                      </VBox>
                       <Title text="{agent>/counts/MASTER_DATA}" level="H2" class="coraKpiNum"/>
-                      <Text  text="Master Data"   class="coraKpiLbl"/>
+                      <Text text="Master Data"   class="coraKpiLbl"/>
+                      <Text text="ERRORS"        class="coraKpiSub"/>
                     </VBox>
 
                     <VBox class="coraKpiTile coraKpi-tr" alignItems="Center">
-                      <core:Icon src="sap-icon://process"   size="1.6rem" color="#c62828"/>
+                      <VBox class="coraKpiIconBox coraKpiIconBox-tr" justifyContent="Center" alignItems="Center">
+                        <core:Icon src="sap-icon://process" size="1.4rem" color="#c62828"/>
+                      </VBox>
                       <Title text="{agent>/counts/TRANSACTION}" level="H2" class="coraKpiNum"/>
-                      <Text  text="Transaction"   class="coraKpiLbl"/>
+                      <Text text="Transaction"   class="coraKpiLbl"/>
+                      <Text text="ERRORS"        class="coraKpiSub"/>
                     </VBox>
 
                     <VBox class="coraKpiTile coraKpi-cf" alignItems="Center">
-                      <core:Icon src="sap-icon://settings"  size="1.6rem" color="#1565c0"/>
+                      <VBox class="coraKpiIconBox coraKpiIconBox-cf" justifyContent="Center" alignItems="Center">
+                        <core:Icon src="sap-icon://settings" size="1.4rem" color="#1565c0"/>
+                      </VBox>
                       <Title text="{agent>/counts/CONFIG}"  level="H2" class="coraKpiNum"/>
-                      <Text  text="Config"        class="coraKpiLbl"/>
+                      <Text text="Config"        class="coraKpiLbl"/>
+                      <Text text="ERRORS"        class="coraKpiSub"/>
                     </VBox>
 
                     <VBox class="coraKpiTile coraKpi-au" alignItems="Center">
-                      <core:Icon src="sap-icon://shield"    size="1.6rem" color="#6a1b9a"/>
+                      <VBox class="coraKpiIconBox coraKpiIconBox-au" justifyContent="Center" alignItems="Center">
+                        <core:Icon src="sap-icon://shield" size="1.4rem" color="#6a1b9a"/>
+                      </VBox>
                       <Title text="{agent>/counts/AUTHORIZATION}" level="H2" class="coraKpiNum"/>
-                      <Text  text="Authorization" class="coraKpiLbl"/>
+                      <Text text="Authorization" class="coraKpiLbl"/>
+                      <Text text="ERRORS"        class="coraKpiSub"/>
                     </VBox>
 
                   </HBox>
 
-                  <!-- Suggestion chips -->
-                  <VBox class="coraSuggestSection" alignItems="Center">
-                    <Text text="Quick questions to get started" class="coraSuggestHeading"/>
-                    <HBox wrap="Wrap" justifyContent="Center" class="coraSuggestRow">
-                      <Button text="Why did my posting fail?"        type="Ghost" press=".onSuggestion" class="coraSuggestBtn"/>
-                      <Button text="Top recurring errors this month" type="Ghost" press=".onSuggestion" class="coraSuggestBtn"/>
-                      <Button text="Recommend corrective action"     type="Ghost" press=".onSuggestion" class="coraSuggestBtn"/>
-                      <Button text="Show all authorization errors"   type="Ghost" press=".onSuggestion" class="coraSuggestBtn"/>
-                    </HBox>
-                  </VBox>
+                  <!-- ── Three Info Cards ── -->
+                  <HBox class="coraInfoRow" wrap="Wrap" justifyContent="Center">
+
+                    <!-- How CORA Works -->
+                    <VBox class="coraInfoCard">
+                      <HBox class="coraInfoCardHead" alignItems="Center">
+                        <VBox class="coraInfoCardIconBox coraInfoCardIconBox-blue" justifyContent="Center" alignItems="Center">
+                          <core:Icon src="sap-icon://workflow-tasks" size="1rem" color="#ffffff"/>
+                        </VBox>
+                        <Title text="How CORA Works" level="H6" class="coraInfoCardTitle"/>
+                      </HBox>
+                      <VBox class="coraInfoSteps">
+                        <HBox class="coraInfoStep" alignItems="Center">
+                          <Text text="1" class="coraStepNum"/>
+                          <VBox>
+                            <Text text="Select an Error"  class="coraStepTitle"/>
+                            <Text text="Pick from the error queue on the left" class="coraStepDesc"/>
+                          </VBox>
+                        </HBox>
+                        <HBox class="coraInfoStep" alignItems="Center">
+                          <Text text="2" class="coraStepNum"/>
+                          <VBox>
+                            <Text text="AI Analysis" class="coraStepTitle"/>
+                            <Text text="CORA identifies the root cause instantly" class="coraStepDesc"/>
+                          </VBox>
+                        </HBox>
+                        <HBox class="coraInfoStep" alignItems="Center">
+                          <Text text="3" class="coraStepNum"/>
+                          <VBox>
+                            <Text text="Execute Fix" class="coraStepTitle"/>
+                            <Text text="Apply the AI-recommended corrective action" class="coraStepDesc"/>
+                          </VBox>
+                        </HBox>
+                      </VBox>
+                    </VBox>
+
+                    <!-- Quick Actions -->
+                    <VBox class="coraInfoCard">
+                      <HBox class="coraInfoCardHead" alignItems="Center">
+                        <VBox class="coraInfoCardIconBox coraInfoCardIconBox-green" justifyContent="Center" alignItems="Center">
+                          <core:Icon src="sap-icon://activate" size="1rem" color="#ffffff"/>
+                        </VBox>
+                        <Title text="Quick Actions" level="H6" class="coraInfoCardTitle"/>
+                      </HBox>
+                      <VBox class="coraQuickActions">
+                        <Button text="Why did my posting fail?"        type="Ghost" press=".onSuggestion" class="coraQuickBtn"/>
+                        <Button text="Top recurring errors this month" type="Ghost" press=".onSuggestion" class="coraQuickBtn"/>
+                        <Button text="Show all authorization errors"   type="Ghost" press=".onSuggestion" class="coraQuickBtn"/>
+                        <Button text="Recommend corrective action"     type="Ghost" press=".onSuggestion" class="coraQuickBtn"/>
+                      </VBox>
+                    </VBox>
+
+                    <!-- SAP Error Layers -->
+                    <VBox class="coraInfoCard">
+                      <HBox class="coraInfoCardHead" alignItems="Center">
+                        <VBox class="coraInfoCardIconBox coraInfoCardIconBox-purple" justifyContent="Center" alignItems="Center">
+                          <core:Icon src="sap-icon://list" size="1rem" color="#ffffff"/>
+                        </VBox>
+                        <Title text="SAP Error Layers" level="H6" class="coraInfoCardTitle"/>
+                      </HBox>
+                      <VBox class="coraLayerGuide">
+                        <HBox class="coraLayerRow" alignItems="Center">
+                          <VBox class="coraLayerDot" style="background:#e65100"/>
+                          <VBox>
+                            <Text text="Master Data"  class="coraLayerRowName"/>
+                            <Text text="Cost center config, validity, hierarchy" class="coraLayerRowDesc"/>
+                          </VBox>
+                        </HBox>
+                        <HBox class="coraLayerRow" alignItems="Center">
+                          <VBox class="coraLayerDot" style="background:#c62828"/>
+                          <VBox>
+                            <Text text="Transaction"  class="coraLayerRowName"/>
+                            <Text text="Posting periods, budget, cost elements" class="coraLayerRowDesc"/>
+                          </VBox>
+                        </HBox>
+                        <HBox class="coraLayerRow" alignItems="Center">
+                          <VBox class="coraLayerDot" style="background:#1565c0"/>
+                          <VBox>
+                            <Text text="Configuration" class="coraLayerRowName"/>
+                            <Text text="System settings, account assignments" class="coraLayerRowDesc"/>
+                          </VBox>
+                        </HBox>
+                        <HBox class="coraLayerRow" alignItems="Center">
+                          <VBox class="coraLayerDot" style="background:#6a1b9a"/>
+                          <VBox>
+                            <Text text="Authorization" class="coraLayerRowName"/>
+                            <Text text="Role assignments, K_CSKS object auth" class="coraLayerRowDesc"/>
+                          </VBox>
+                        </HBox>
+                      </VBox>
+                    </VBox>
+
+                  </HBox>
 
                 </VBox>
 
