@@ -152,7 +152,7 @@
                 <!--  WELCOME DASHBOARD (shown when nothing is selected) -->
                 <!-- ─────────────────────────────────────────────────── -->
                 <VBox class="coraWelcome"
-                  visible="{= !${agent>/currentError} &amp;&amp; ${agent>/messages}.length === 0 }">
+                  visible="{= !${agent>/currentError} }">
 
                   <!-- ── Hero Banner ── -->
                   <VBox class="coraHeroBanner">
@@ -477,101 +477,6 @@
 
                 </VBox>
 
-                <!-- ─────────────────────────────────────────────────── -->
-                <!--  CHAT / AI ASSISTANT                                -->
-                <!-- ─────────────────────────────────────────────────── -->
-                <VBox class="coraChatSection">
-
-                  <!-- Section header -->
-                  <HBox class="coraChatSectionHead" alignItems="Center"
-                    justifyContent="SpaceBetween">
-                    <HBox alignItems="Center">
-                      <VBox class="coraChatAvatarSm" justifyContent="Center" alignItems="Center">
-                        <core:Icon src="sap-icon://ai" size="0.85rem" color="#ffffff"/>
-                      </VBox>
-                      <Title text="CORA Assistant" level="H5" class="coraChatSectionTitle"/>
-                    </HBox>
-                    <Button icon="sap-icon://delete" tooltip="Clear conversation"
-                      press=".onClearChat" type="Transparent"/>
-                  </HBox>
-
-                  <!-- Messages -->
-                  <ScrollContainer id="chatScroll" class="coraChatScroll"
-                    vertical="true" horizontal="false">
-
-                    <!-- Empty state -->
-                    <VBox class="coraEmptyState"
-                      visible="{= ${agent>/messages}.length === 0 &amp;&amp; !${agent>/busy} }">
-                      <core:Icon src="sap-icon://discussion" size="3rem" color="#d0d5de"/>
-                      <Text class="coraEmptyHint" textAlign="Center" wrapping="true"
-                        text="Select an error from the queue — CORA will analyse it instantly. Or type any question below."/>
-                    </VBox>
-
-                    <!-- Message list -->
-                    <List id="msgList" showSeparators="None" backgroundDesign="Transparent"
-                      items="{path: 'agent>/messages', templateShareable: false}">
-
-                      <CustomListItem class="coraMsgListItem">
-
-                        <!-- USER bubble -->
-                        <VBox class="coraMsgUser" visible="{= ${agent>role}==='user' }">
-                          <HBox justifyContent="End" alignItems="FlexEnd">
-                            <Text text="{agent>content}" class="coraBubbleUser" wrapping="true"/>
-                          </HBox>
-                          <Text text="{agent>timestamp}" class="coraTs" textAlign="Right"/>
-                        </VBox>
-
-                        <!-- ASSISTANT bubble -->
-                        <VBox class="coraMsgBot" visible="{= ${agent>role}==='assistant' }">
-                          <HBox alignItems="FlexStart">
-                            <VBox class="coraBotAvatar" justifyContent="Center" alignItems="Center">
-                              <core:Icon src="sap-icon://ai" size="0.85rem" color="#ffffff"/>
-                            </VBox>
-                            <VBox class="coraBotContent">
-                              <Text text="{agent>content}" class="coraBubbleBot" wrapping="true"/>
-                              <Text text="{agent>timestamp}" class="coraTs"/>
-                            </VBox>
-                          </HBox>
-                        </VBox>
-
-                      </CustomListItem>
-                    </List>
-                  </ScrollContainer>
-
-                  <!-- Thinking indicator -->
-                  <HBox class="coraThinkingRow" visible="{agent>/busy}" alignItems="Center">
-                    <VBox class="coraBotAvatar" justifyContent="Center" alignItems="Center">
-                      <core:Icon src="sap-icon://ai" size="0.85rem" color="#ffffff"/>
-                    </VBox>
-                    <Text text="CORA is analysing" class="coraThinkingText"/>
-                    <core:HTML content="&lt;span class='coraDots'&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;&lt;/span&gt;"/>
-                  </HBox>
-
-                  <!-- Input bar — sticky at bottom -->
-                  <HBox class="coraInputBar" alignItems="FlexEnd">
-                    <TextArea
-                      id="chatInput"
-                      value="{agent>/inputText}"
-                      placeholder="Ask CORA about SAP cost center errors…  (Enter to send)"
-                      rows="2"
-                      growing="true"
-                      growingMaxLines="4"
-                      width="100%"
-                      submit=".onSend"
-                      class="coraInputArea"/>
-                    <VBox class="coraInputBtns" justifyContent="End">
-                      <Button id="sendBtn" icon="sap-icon://paper-plane" type="Emphasized"
-                        press=".onSend"
-                        enabled="{= !!${agent>/inputText} &amp;&amp; !${agent>/busy} }"
-                        tooltip="Send (Enter)"
-                        class="coraSendBtn"/>
-                      <Button icon="sap-icon://delete" tooltip="Clear chat"
-                        press=".onClearChat" type="Transparent"/>
-                    </VBox>
-                  </HBox>
-
-                </VBox>
-                <!-- end coraChatSection -->
 
               </VBox>
               <!-- end coraMainPane -->
