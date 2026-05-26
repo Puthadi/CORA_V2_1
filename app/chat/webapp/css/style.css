@@ -845,3 +845,21 @@
   .coraLayerChips { display: none; }
   .coraInputBar { position: static; }
 }
+
+/* ── Quick Action result dialog ──────────────────────────────────────── */
+.coraDlgAnswer {
+  font-size: 0.875rem !important;
+  line-height: 1.65 !important;
+  color: var(--cora-text) !important;
+  white-space: pre-wrap;
+  padding: 0.25rem 0 0.5rem;
+}
+
+.coraDlgRecHeading {
+  margin-top: 1rem !important;
+  margin-bottom: 0.25rem !important;
+  font-size: 0.82rem !important;
+  color: var(--cora-muted) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}

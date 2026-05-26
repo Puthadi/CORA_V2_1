@@ -2,8 +2,15 @@ sap.ui.define([
   "sap/ui/core/mvc/Controller",
   "sap/ui/model/json/JSONModel",
   "sap/m/MessageToast",
-  "sap/m/MessageBox"
-], function (Controller, JSONModel, MessageToast, MessageBox) {
+  "sap/m/MessageBox",
+  "sap/m/Dialog",
+  "sap/m/Button",
+  "sap/m/Text",
+  "sap/m/Title",
+  "sap/m/List",
+  "sap/m/StandardListItem"
+], function (Controller, JSONModel, MessageToast, MessageBox,
+             Dialog, Button, Text, Title, List, StandardListItem) {
   "use strict";
 
   // Works with both the CAP backend (port 4004) and the mock server (port 4005).
@@ -114,9 +121,71 @@ sap.ui.define([
     },
 
     onSuggestion: function (oEvent) {
-      const text = oEvent.getSource().getText();
-      this.getView().getModel("agent").setProperty("/inputText", text);
-      this.onSend();
+      const text  = oEvent.getSource().getText();
+      const model = this.getView().getModel("agent");
+      if (model.getProperty("/busy")) return;
+
+      model.setProperty("/busy", true);
+      const errorId = (model.getProperty("/currentError") || {}).ID;
+
+      fetch(`${AGENT}/chat`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          input: { sessionId: this._sessionId, message: text, errorId: errorId || null }
+        }),
+      })
+        .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+        .then(data => {
+          const resp = data.value || data;
+          model.setProperty("/recommendations", resp.recommendations || []);
+          this._showResultDialog(text, resp.message || "(no response)", resp.recommendations || []);
+        })
+        .catch(err => MessageBox.error(`Could not reach CORA: ${err.message}`))
+        .finally(() => model.setProperty("/busy", false));
+    },
+
+    _showResultDialog: function (question, answer, recommendations) {
+      var content = [];
+
+      var answerText = new Text({ text: answer, wrapping: true });
+      answerText.addStyleClass("coraDlgAnswer");
+      content.push(answerText);
+
+      if (recommendations && recommendations.length > 0) {
+        var recHeading = new Title({ text: "AI Recommendations", level: "H6" });
+        recHeading.addStyleClass("coraDlgRecHeading");
+        content.push(recHeading);
+
+        var recList = new List({ showSeparators: "Inner" });
+        recommendations.forEach(function (rec) {
+          recList.addItem(new StandardListItem({
+            title:       rec.title,
+            description: rec.description,
+            info:        rec.priority,
+            infoState:   rec.priority === "HIGH" ? "Error" : rec.priority === "MEDIUM" ? "Warning" : "Success",
+            highlight:   rec.priority === "HIGH" ? "Error" : rec.priority === "MEDIUM" ? "Warning" : "Success"
+          }));
+        });
+        content.push(recList);
+      }
+
+      var oDialog = new Dialog({
+        title:        question,
+        contentWidth: "540px",
+        resizable:    true,
+        draggable:    true,
+        content:      content,
+        beginButton: new Button({
+          text: "Close",
+          type: "Emphasized",
+          press: function () { oDialog.close(); }
+        }),
+        afterClose: function () { oDialog.destroy(); }
+      });
+
+      this.getView().addDependent(oDialog);
+      oDialog.open();
     },
 
     _sendMessage: function (text, errorId) {
