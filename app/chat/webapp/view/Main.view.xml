@@ -31,28 +31,6 @@
               </contentLeft>
 
               <contentMiddle>
-                <HBox alignItems="Center" class="coraLayerChips">
-                  <Button id="chipMaster" class="coraChip coraChip-md"
-                    text="Master Data · {agent>/counts/MASTER_DATA}"
-                    type="Transparent" press=".onChipFilter">
-                    <customData><core:CustomData key="layer" value="MASTER_DATA"/></customData>
-                  </Button>
-                  <Button id="chipTrans" class="coraChip coraChip-tr"
-                    text="Transaction · {agent>/counts/TRANSACTION}"
-                    type="Transparent" press=".onChipFilter">
-                    <customData><core:CustomData key="layer" value="TRANSACTION"/></customData>
-                  </Button>
-                  <Button id="chipConfig" class="coraChip coraChip-cf"
-                    text="Config · {agent>/counts/CONFIG}"
-                    type="Transparent" press=".onChipFilter">
-                    <customData><core:CustomData key="layer" value="CONFIG"/></customData>
-                  </Button>
-                  <Button id="chipAuth" class="coraChip coraChip-au"
-                    text="Auth · {agent>/counts/AUTHORIZATION}"
-                    type="Transparent" press=".onChipFilter">
-                    <customData><core:CustomData key="layer" value="AUTHORIZATION"/></customData>
-                  </Button>
-                </HBox>
               </contentMiddle>
 
               <contentRight>
