@@ -17,7 +17,7 @@
 
 ---
 
-[📋 PRD](docs/PRD.md) · [🏗 SDD](docs/SDD.md) · [🔵 Problem Statement](docs/PROBLEM_STATEMENT.md) · [💡 Solution](docs/SOLUTION.md) · [🔄 Flow Diagrams](docs/FLOW_DIAGRAMS.md) · [📱 Use Cases](docs/USE_CASES.md) · [🎯 Presentation](docs/END_USER_PRESENTATION.md)
+[📋 PRD](docs/PRD.md) · [🏗 SDD](docs/SDD.md) · [🤖 Agent Details](docs/AGENT_DETAILS.md) · [🔵 Problem Statement](docs/PROBLEM_STATEMENT.md) · [💡 Solution](docs/SOLUTION.md) · [🔄 Flow Diagrams](docs/FLOW_DIAGRAMS.md) · [📱 Use Cases](docs/USE_CASES.md) · [🎯 Presentation](docs/END_USER_PRESENTATION.md)
 
 </div>
 
@@ -358,6 +358,7 @@ ProxyType:      OnPremise   ← requires Cloud Connector
 |----------|-------------|
 | [📋 PRD](docs/PRD.md) | Full Product Requirements Document |
 | [🏗 SDD](docs/SDD.md) | Software Design Document — architecture, components, data model, APIs |
+| [🤖 Agent Details](docs/AGENT_DETAILS.md) | AI model, activities, actions, tool definitions, scoring |
 | [🚨 Problem Statement](docs/PROBLEM_STATEMENT.md) | Business challenges addressed |
 | [💡 Solution](docs/SOLUTION.md) | Technical and functional solution design |
 | [🔄 Flow Diagrams](docs/FLOW_DIAGRAMS.md) | Architecture, data flow, and process diagrams |
