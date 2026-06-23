@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CORA — Cost Center Error Resolution Agent</title>
+  <style>
+    /* ═══════════════════════════════════════════════════════
+       Design tokens
+    ═══════════════════════════════════════════════════════ */
+    :root {
+      --navy:        #0d1b2a;
+      --navy2:       #1a3350;
+      --blue:        #0a6ed1;
+      --blue-lt:     #e8f3ff;
+      --surface:     #ffffff;
+      --bg:          #f0f2f5;
+      --border:      #e0e3e8;
+      --text:        #1d2129;
+      --muted:       #6a7282;
+      --error:       #c62828;
+      --warn:        #e9730c;
+      --ok:          #256f3a;
+      --master:      #e65100;
+      --trans:       #c62828;
+      --config:      #1565c0;
+      --auth:        #6a1b9a;
+      --radius:      0.625rem;
+      --sh-sm:       0 1px 4px rgba(0,0,0,.08);
+      --sh-md:       0 4px 16px rgba(0,0,0,.10);
+      --sh-lg:       0 8px 32px rgba(0,0,0,.14);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "72", "72full", Arial, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow: hidden; }
+
+    /* ── Header ── */
+    .hdr {
+      height: 3rem;
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      box-shadow: 0 2px 12px rgba(0,0,0,.3);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 1rem; flex-shrink: 0;
+    }
+    .hdr-left { display: flex; align-items: center; gap: .625rem; }
+    .logo-circle {
+      width: 2.1rem; height: 2.1rem; border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue), #7950f2);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 8px rgba(10,110,209,.4); flex-shrink: 0;
+      font-size: 1rem; color: #fff;
+    }
+    .logo-name { color: #fff; font-size: 1.05rem; font-weight: 700; letter-spacing: .03em; }
+    .logo-sub  { color: rgba(255,255,255,.5); font-size: .68rem; line-height: 1.2; }
+    .hdr-right { display: flex; gap: .25rem; }
+    .hdr-btn {
+      background: transparent; border: none; color: rgba(255,255,255,.7);
+      width: 2.25rem; height: 2.25rem; border-radius: .4rem; cursor: pointer;
+      font-size: 1rem; display: flex; align-items: center; justify-content: center;
+      transition: background .15s, color .15s;
+    }
+    .hdr-btn:hover { background: rgba(255,255,255,.1); color: #fff; }
+    .hdr-btn title { display: none; }
+
+    /* ── Layout ── */
+    .layout {
+      display: flex; height: calc(100vh - 3rem); overflow: hidden;
+    }
+
+    /* ── Left pane ── */
+    .left-pane {
+      width: 300px; min-width: 220px; flex-shrink: 0;
+      background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .queue-hdr {
+      padding: .8rem 1rem; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+    }
+    .queue-title { font-size: .88rem; font-weight: 700; }
+    .queue-sub   { font-size: .7rem; color: var(--muted); margin-top: .1rem; }
+    .layer-select {
+      font-size: .74rem; border: 1px solid var(--border); border-radius: .4rem;
+      padding: .25rem .5rem; background: var(--surface); color: var(--text); cursor: pointer;
+    }
+    .error-list { flex: 1; overflow-y: auto; padding: .375rem .5rem; }
+    .err-card {
+      border: 1px solid var(--border); border-radius: var(--radius);
+      margin-bottom: .375rem; background: var(--surface);
+      display: flex; overflow: hidden; cursor: pointer;
+      transition: border-color .18s, box-shadow .18s;
+    }
+    .err-card:hover { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(10,110,209,.15), var(--sh-md); }
+    .err-card.active { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(10,110,209,.2), var(--sh-md); }
+    .err-accent { width: 5px; flex-shrink: 0; }
+    .err-body   { padding: .55rem .7rem; flex: 1; min-width: 0; }
+    .err-row1   { display: flex; justify-content: space-between; align-items: center; margin-bottom: .1rem; }
+    .err-code   { font-size: .84rem; font-weight: 700; }
+    .err-badge  { font-size: .62rem; font-weight: 600; padding: .1rem .45rem; border-radius: .9rem; }
+    .badge-open { background: #fce4ec; color: var(--error); }
+    .badge-ip   { background: #fff3e0; color: var(--warn); }
+    .badge-res  { background: #e8f5e9; color: var(--ok); }
+    .err-cc   { font-size: .7rem; color: var(--muted); margin-bottom: .1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .err-txt  { font-size: .71rem; color: #555; margin-bottom: .25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .err-row3 { display: flex; justify-content: space-between; align-items: center; }
+    .layer-tag { font-size: .62rem; font-weight: 600; padding: .1rem .4rem; border-radius: .8rem; }
+    .lt-md  { background: rgba(230,81,0,.12);   color: var(--master); }
+    .lt-tr  { background: rgba(198,40,40,.12);  color: var(--trans);  }
+    .lt-cfg { background: rgba(21,101,192,.12); color: var(--config); }
+    .lt-au  { background: rgba(106,27,154,.12); color: var(--auth);   }
+    .lt-uk  { background: rgba(100,100,100,.12);color: #666; }
+    .err-period { font-size: .62rem; color: #bbb; }
+
+    /* ── Right pane ── */
+    .main-pane {
+      flex: 1; min-width: 0; display: flex; flex-direction: column;
+      overflow-y: auto; overflow-x: hidden; background: var(--bg);
+    }
+
+    /* ── Welcome ── */
+    .welcome {
+      flex: 1; padding: 1.5rem; display: flex; flex-direction: column;
+      gap: 1.25rem; overflow-y: auto;
+    }
+    .hero {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 55%, #0a3d62 100%);
+      border-radius: var(--radius); padding: 1.75rem 2rem;
+      box-shadow: var(--sh-lg); position: relative; overflow: hidden;
+    }
+    .hero::after {
+      content: ''; position: absolute; top: -60px; right: -60px;
+      width: 240px; height: 240px; border-radius: 50%;
+      background: rgba(10,110,209,.1); pointer-events: none;
+    }
+    .hero-inner  { display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 1; }
+    .hero-brand  { display: flex; align-items: center; gap: 1.25rem; }
+    .hero-avatar {
+      width: 4.5rem; height: 4.5rem; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--blue), #7950f2);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 6px 24px rgba(10,110,209,.45); font-size: 2rem; color: #fff;
+    }
+    .hero-title  { font-size: 1.8rem; font-weight: 800; color: #fff; line-height: 1.15; }
+    .hero-sub    { font-size: .88rem; color: rgba(255,255,255,.65); margin-top: .3rem; line-height: 1.4; }
+    .hero-status { display: flex; align-items: center; gap: .4rem; margin-top: .5rem; }
+    .dot         { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .dot-green   { background: #4caf50; box-shadow: 0 0 6px rgba(76,175,80,.7); }
+    .dot-blue    { background: #42a5f5; box-shadow: 0 0 6px rgba(66,165,245,.7); }
+    .hero-st     { font-size: .73rem; color: rgba(255,255,255,.6); font-weight: 500; }
+    .hero-sep    { font-size: .73rem; color: rgba(255,255,255,.25); }
+    .badges      { display: flex; flex-direction: column; align-items: flex-end; gap: .3rem; }
+    .badge-tag   {
+      display: inline-block; padding: .2rem .65rem; border-radius: 1rem;
+      font-size: .67rem; font-weight: 600; background: rgba(255,255,255,.1);
+      color: rgba(255,255,255,.75); border: 1px solid rgba(255,255,255,.15);
+      letter-spacing: .04em; white-space: nowrap;
+    }
+
+    /* KPI tiles */
+    .kpi-row { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .kpi-tile {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.1rem 1.3rem;
+      display: flex; flex-direction: column; align-items: center; gap: .35rem;
+      box-shadow: var(--sh-sm); min-width: 130px; transition: transform .18s, box-shadow .18s;
+    }
+    .kpi-tile:hover { transform: translateY(-3px); box-shadow: var(--sh-md); }
+    .kpi-md  { border-top: 3px solid var(--master); }
+    .kpi-tr  { border-top: 3px solid var(--trans);  }
+    .kpi-cfg { border-top: 3px solid var(--config); }
+    .kpi-au  { border-top: 3px solid var(--auth);   }
+    .kpi-icon {
+      width: 2.6rem; height: 2.6rem; border-radius: .6rem;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; margin-bottom: .25rem;
+    }
+    .ki-md  { background: rgba(230,81,0,.1); }
+    .ki-tr  { background: rgba(198,40,40,.1); }
+    .ki-cfg { background: rgba(21,101,192,.1); }
+    .ki-au  { background: rgba(106,27,154,.1); }
+    .kpi-num { font-size: 2rem; font-weight: 700; color: var(--text); line-height: 1; }
+    .kpi-lbl { font-size: .76rem; font-weight: 600; color: var(--text); }
+    .kpi-sub { font-size: .6rem; font-weight: 600; color: #b8bfc9; letter-spacing: .07em; }
+
+    /* Info cards row */
+    .info-row  { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .info-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.15rem;
+      box-shadow: var(--sh-sm); flex: 1; min-width: 230px; max-width: 380px;
+      display: flex; flex-direction: column; gap: .8rem;
+      transition: box-shadow .18s;
+    }
+    .info-card:hover { box-shadow: var(--sh-md); }
+    .info-card-hd { display: flex; align-items: center; gap: .6rem; }
+    .info-icon {
+      width: 2.1rem; height: 2.1rem; border-radius: .45rem; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: .95rem; color: #fff;
+    }
+    .ii-blue   { background: linear-gradient(135deg, #1565c0, #1976d2); }
+    .ii-green  { background: linear-gradient(135deg, #256f3a, #2e7d32); }
+    .ii-purple { background: linear-gradient(135deg, #6a1b9a, #7b1fa2); }
+    .info-title { font-size: .86rem; font-weight: 700; }
+    /* Steps */
+    .steps    { display: flex; flex-direction: column; gap: .65rem; }
+    .step     { display: flex; align-items: flex-start; gap: .65rem; }
+    .step-num {
+      min-width: 1.6rem; height: 1.6rem; border-radius: 50%;
+      background: var(--blue-lt); color: var(--blue);
+      font-size: .7rem; font-weight: 800; text-align: center;
+      line-height: 1.6rem; flex-shrink: 0;
+    }
+    .step-title { font-size: .78rem; font-weight: 600; }
+    .step-desc  { font-size: .7rem; color: var(--muted); margin-top: .1rem; }
+    /* Quick actions */
+    .qa-list { display: flex; flex-direction: column; gap: .35rem; }
+    .qa-btn {
+      background: var(--surface); border: 1px solid var(--border); border-radius: .5rem;
+      padding: .4rem .7rem; font-size: .77rem; color: var(--text); cursor: pointer;
+      text-align: left; transition: all .15s; width: 100%;
+    }
+    .qa-btn:hover { background: var(--blue-lt); border-color: var(--blue); color: var(--blue); }
+    /* Layer guide */
+    .layer-guide { display: flex; flex-direction: column; gap: .65rem; }
+    .layer-row   { display: flex; align-items: flex-start; gap: .65rem; }
+    .layer-dot   { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: .25rem; }
+    .lr-name { font-size: .78rem; font-weight: 600; }
+    .lr-desc { font-size: .69rem; color: var(--muted); margin-top: .1rem; }
+
+    /* ── Error detail card ── */
+    .detail-card {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      flex-shrink: 0; box-shadow: var(--sh-sm); display: none;
+    }
+    .detail-hd {
+      padding: 1rem 1.25rem .75rem; display: flex; align-items: flex-start;
+      justify-content: space-between; gap: .75rem;
+    }
+    .detail-icon {
+      width: 2.1rem; height: 2.1rem; border-radius: 50%;
+      background: linear-gradient(135deg, #c62828, #e53935);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .9rem; color: #fff; flex-shrink: 0;
+      margin-right: .7rem; margin-top: .1rem;
+      box-shadow: 0 2px 8px rgba(198,40,40,.3);
+    }
+    .detail-code { font-size: 1.1rem; font-weight: 700; }
+    .detail-err-txt { font-size: .8rem; color: var(--muted); margin-top: .2rem; line-height: 1.5; }
+    .detail-meta { display: flex; flex-wrap: wrap; padding: 0 1.25rem .875rem; }
+    .meta-cell  { flex: 0 0 33.33%; padding: .45rem .65rem; border-right: 1px solid #f0f0f0; border-bottom: 1px solid #f0f0f0; }
+    .meta-cell:nth-child(3n) { border-right: none; }
+    .meta-cell:nth-last-child(-n+3) { border-bottom: none; }
+    .meta-lbl { font-size: .6rem; color: #aab0bb; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; margin-bottom: .2rem; }
+    .meta-val { font-size: .8rem; font-weight: 600; }
+    .root-cause-strip {
+      margin: 0 1.25rem .875rem; padding: .6rem .9rem; border-radius: .4rem;
+      background: #fff8e1; border-left: 3px solid #f0a500;
+      font-size: .8rem; color: #5d4037; line-height: 1.5; display: none;
+    }
+    .dismiss-btn {
+      background: transparent; border: none; cursor: pointer; color: var(--muted);
+      font-size: 1.1rem; padding: .25rem .4rem; border-radius: .35rem; line-height: 1;
+      transition: background .15s;
+    }
+    .dismiss-btn:hover { background: var(--bg); }
+
+    /* ── Recommendations ── */
+    .recs-section {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      flex-shrink: 0; box-shadow: var(--sh-sm); display: none;
+    }
+    .recs-hd {
+      padding: .7rem 1.25rem .45rem; display: flex; align-items: center;
+      justify-content: space-between;
+    }
+    .recs-title  { font-size: .86rem; font-weight: 700; }
+    .recs-count  { font-size: .7rem; color: var(--muted); margin-left: .4rem; }
+    .recs-scroll { overflow-x: auto; padding: .5rem 1rem 1rem; }
+    .recs-row    { display: flex; gap: 1rem; min-width: max-content; }
+    .rec-card {
+      width: 290px; flex-shrink: 0; background: var(--surface);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1rem; display: flex; flex-direction: column; gap: .55rem;
+      box-shadow: var(--sh-sm); transition: transform .15s, box-shadow .15s;
+    }
+    .rec-card:hover { transform: translateY(-2px); box-shadow: var(--sh-md); }
+    .rec-top { display: flex; align-items: center; justify-content: space-between; }
+    .prio-tag  { font-size: .68rem; font-weight: 700; padding: .12rem .45rem; border-radius: .8rem; }
+    .p-high { background: #fce4ec; color: var(--error); }
+    .p-med  { background: #fff3e0; color: var(--warn);  }
+    .p-low  { background: #e8f5e9; color: var(--ok);    }
+    .conf-chip { font-size: .66rem; font-weight: 700; padding: .12rem .45rem; border-radius: .8rem; }
+    .ch-high { background: #e8f5e9; color: #2e7d32; }
+    .ch-med  { background: #fff8e1; color: var(--warn); }
+    .ch-low  { background: #fce4ec; color: var(--error); }
+    .rec-title { font-size: .8rem; font-weight: 700; line-height: 1.35; }
+    .rec-desc  { font-size: .73rem; color: var(--muted); line-height: 1.5; flex: 1; }
+    .conf-bar  { height: 5px; border-radius: 3px; background: #eee; overflow: hidden; margin: .1rem 0; }
+    .conf-fill { height: 100%; border-radius: 3px; }
+    .cf-high { background: #4caf50; } .cf-med { background: #ff9800; } .cf-low { background: #f44336; }
+    .rec-actions { display: flex; align-items: center; justify-content: space-between; margin-top: .1rem; }
+    .exec-btn {
+      font-size: .73rem; font-weight: 600; padding: .35rem .8rem;
+      border-radius: .4rem; border: none; cursor: pointer; transition: all .15s;
+    }
+    .exec-btn.active   { background: #e8f5e9; color: var(--ok); }
+    .exec-btn.done     { background: #f5f5f5; color: #999; cursor: default; }
+    .exec-btn.active:hover { background: #c8e6c9; }
+    .fb-btns { display: flex; gap: .25rem; }
+    .fb-btn  {
+      background: transparent; border: 1px solid var(--border); border-radius: .35rem;
+      padding: .2rem .45rem; font-size: .8rem; cursor: pointer; transition: all .15s;
+    }
+    .fb-btn:hover { background: var(--blue-lt); border-color: var(--blue); }
+
+    /* ── Chat section ── */
+    .chat-section {
+      flex: 1; display: flex; flex-direction: column; overflow: hidden;
+      background: #f7f9fc; min-height: 200px;
+    }
+    .chat-hd {
+      padding: .65rem 1.25rem; border-bottom: 1px solid var(--border);
+      background: var(--surface); display: flex; align-items: center;
+      justify-content: space-between; flex-shrink: 0;
+    }
+    .chat-hd-left { display: flex; align-items: center; gap: .5rem; }
+    .chat-avatar-sm {
+      width: 1.6rem; height: 1.6rem; border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue), #7950f2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .75rem; color: #fff; flex-shrink: 0;
+    }
+    .chat-title { font-size: .86rem; font-weight: 700; }
+    .clear-btn {
+      background: transparent; border: 1px solid var(--border); border-radius: .4rem;
+      padding: .25rem .6rem; font-size: .72rem; cursor: pointer; color: var(--muted);
+      transition: all .15s;
+    }
+    .clear-btn:hover { border-color: var(--blue); color: var(--blue); }
+    .msgs-area {
+      flex: 1; overflow-y: auto; padding: .5rem 0;
+      display: flex; flex-direction: column; gap: .1rem;
+    }
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center; gap: .75rem;
+      padding: 3rem 2rem; text-align: center;
+    }
+    .empty-icon { font-size: 2.5rem; opacity: .3; }
+    .empty-hint { font-size: .8rem; color: #b0b8c6; max-width: 26rem; line-height: 1.6; }
+    /* Messages */
+    .msg-user { display: flex; justify-content: flex-end; padding: .2rem 1rem .1rem; }
+    .msg-bot  { display: flex; justify-content: flex-start; padding: .2rem 1rem .1rem; align-items: flex-start; }
+    .bot-avatar {
+      width: 1.65rem; height: 1.65rem; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--blue), #7950f2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .75rem; color: #fff; margin-right: .55rem; margin-top: .1rem;
+    }
+    .bubble-user {
+      background: linear-gradient(135deg, #0a6ed1, #1976d2); color: #fff;
+      padding: .6rem .95rem; border-radius: 1.2rem 1.2rem .2rem 1.2rem;
+      max-width: 68%; font-size: .84rem; line-height: 1.55;
+      box-shadow: 0 2px 8px rgba(10,110,209,.25); word-break: break-word;
+    }
+    .bubble-bot {
+      background: var(--surface); color: var(--text);
+      padding: .7rem .95rem; border-radius: .2rem 1.2rem 1.2rem 1.2rem;
+      max-width: 78%; font-size: .84rem; line-height: 1.65;
+      border: 1px solid var(--border); box-shadow: var(--sh-sm);
+      word-break: break-word; white-space: pre-wrap;
+    }
+    .ts { font-size: .62rem; color: #c0c6d2; margin-top: .15rem; padding: 0 .2rem; }
+    /* Thinking indicator */
+    .thinking {
+      display: flex; align-items: center; gap: .55rem;
+      padding: .4rem 1rem; flex-shrink: 0;
+    }
+    .dots span {
+      display: inline-block; width: .38rem; height: .38rem; border-radius: 50%;
+      background: var(--blue); margin: 0 .08rem;
+      animation: dotsAnim 1.4s infinite ease-in-out;
+    }
+    .dots span:nth-child(2) { animation-delay: .2s; }
+    .dots span:nth-child(3) { animation-delay: .4s; }
+    @keyframes dotsAnim {
+      0%, 80%, 100% { transform: scale(.55); opacity: .35; }
+      40%           { transform: scale(1);    opacity: 1;   }
+    }
+    .thinking-txt { font-size: .76rem; color: var(--muted); font-style: italic; }
+    /* Input bar */
+    .input-bar {
+      background: var(--surface); border-top: 1px solid var(--border);
+      padding: .65rem .9rem; display: flex; gap: .5rem; align-items: flex-end;
+      flex-shrink: 0; box-shadow: 0 -2px 10px rgba(0,0,0,.06);
+    }
+    .msg-input {
+      flex: 1; border: 1px solid var(--border); border-radius: .7rem;
+      padding: .6rem .9rem; font-size: .84rem; resize: none;
+      font-family: inherit; line-height: 1.5; min-height: 2.4rem; max-height: 7rem;
+      transition: border-color .15s; outline: none;
+    }
+    .msg-input:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(10,110,209,.15); }
+    .send-btn {
+      width: 2.4rem; height: 2.4rem; border-radius: .6rem;
+      background: var(--blue); border: none; color: #fff;
+      font-size: 1rem; cursor: pointer; display: flex; align-items: center;
+      justify-content: center; transition: background .15s; flex-shrink: 0;
+    }
+    .send-btn:hover  { background: #0958b3; }
+    .send-btn:active { background: #074a94; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      display: flex; align-items: center; justify-content: center; z-index: 100;
+      display: none;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface); border-radius: var(--radius);
+      width: 540px; max-width: 96vw; max-height: 80vh;
+      box-shadow: var(--sh-lg); display: flex; flex-direction: column; overflow: hidden;
+    }
+    .modal-hd {
+      padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-title { font-size: .95rem; font-weight: 700; }
+    .modal-close {
+      background: transparent; border: none; font-size: 1.2rem;
+      cursor: pointer; color: var(--muted); line-height: 1;
+    }
+    .modal-body  { padding: 1rem 1.25rem; overflow-y: auto; font-size: .85rem; line-height: 1.65; white-space: pre-wrap; }
+    .modal-recs  { margin-top: 1rem; }
+    .modal-rec-title { font-size: .78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .5rem; }
+    .modal-rec-item  { border: 1px solid var(--border); border-radius: .5rem; padding: .6rem .9rem; margin-bottom: .4rem; }
+    .modal-rec-name  { font-size: .82rem; font-weight: 700; }
+    .modal-rec-desc  { font-size: .75rem; color: var(--muted); margin-top: .15rem; }
+    .modal-ft  { padding: .75rem 1.25rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; }
+    .modal-ok  { background: var(--blue); color: #fff; border: none; border-radius: .4rem; padding: .45rem 1.2rem; font-size: .84rem; font-weight: 600; cursor: pointer; }
+    .modal-ok:hover { background: #0958b3; }
+
+    /* Confirm modal */
+    .confirm-modal { width: 420px; max-width: 96vw; }
+    .confirm-btns  { display: flex; gap: .5rem; }
+    .btn-cancel { background: var(--surface); border: 1px solid var(--border); border-radius: .4rem; padding: .45rem 1.1rem; font-size: .84rem; cursor: pointer; }
+    .btn-ok     { background: #256f3a; color: #fff; border: none; border-radius: .4rem; padding: .45rem 1.1rem; font-size: .84rem; font-weight: 600; cursor: pointer; }
+    .btn-ok:hover { background: #1b5e20; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+      background: #323232; color: #fff; padding: .55rem 1.25rem;
+      border-radius: 2rem; font-size: .82rem; z-index: 200;
+      opacity: 0; transition: opacity .25s; pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .layout { flex-direction: column; height: auto; min-height: calc(100vh - 3rem); overflow-y: auto; }
+      .left-pane { width: 100%; min-width: 100%; height: 230px; border-right: none; border-bottom: 2px solid var(--border); }
+      .main-pane { overflow-y: visible; }
+      .meta-cell { flex: 0 0 50%; }
+      body { overflow: auto; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════
+     HEADER
+════════════════════════════════════════════════ -->
+<header class="hdr">
+  <div class="hdr-left">
+    <div class="logo-circle">🤖</div>
+    <div>
+      <div class="logo-name">CORA</div>
+      <div class="logo-sub">Cost Center Error Resolution</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <button class="hdr-btn" onclick="loadErrors()" title="Refresh">🔄</button>
+    <button class="hdr-btn" onclick="ingestSample()" title="Load test data">➕</button>
+    <button class="hdr-btn" onclick="resetData()" title="Reset data">↩</button>
+  </div>
+</header>
+
+<!-- ════════════════════════════════════════════════
+     MAIN LAYOUT
+════════════════════════════════════════════════ -->
+<div class="layout">
+
+  <!-- LEFT — Error queue -->
+  <div class="left-pane">
+    <div class="queue-hdr">
+      <div>
+        <div class="queue-title">Error Queue</div>
+        <div class="queue-sub" id="queueSub">0 open item(s)</div>
+      </div>
+      <select class="layer-select" id="layerFilter" onchange="filterErrors()">
+        <option value="">All Layers</option>
+        <option value="MASTER_DATA">Master Data</option>
+        <option value="TRANSACTION">Transaction</option>
+        <option value="CONFIG">Config</option>
+        <option value="AUTHORIZATION">Authorization</option>
+      </select>
+    </div>
+    <div class="error-list" id="errorList">
+      <div class="empty-state" style="padding:2rem 1rem">
+        <div class="empty-icon">📋</div>
+        <div class="empty-hint">No errors loaded yet.<br>Click ➕ in the header to load sample data.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT — Main pane -->
+  <div class="main-pane" id="mainPane">
+
+    <!-- Welcome dashboard -->
+    <div class="welcome" id="welcome">
+      <!-- Hero -->
+      <div class="hero">
+        <div class="hero-inner">
+          <div class="hero-brand">
+            <div class="hero-avatar">🤖</div>
+            <div>
+              <div class="hero-title">Hello, I'm CORA</div>
+              <div class="hero-sub">AI-Powered SAP Cost Center Error Resolution Agent</div>
+              <div class="hero-status">
+                <div class="dot dot-green"></div>
+                <span class="hero-st">Online</span>
+                <span class="hero-sep"> · </span>
+                <span class="hero-st" id="heroErrCount">0 errors monitored</span>
+                <span class="hero-sep"> · </span>
+                <div class="dot dot-blue"></div>
+                <span class="hero-st">AI Ready</span>
+              </div>
+            </div>
+          </div>
+          <div class="badges">
+            <span class="badge-tag">Claude AI</span>
+            <span class="badge-tag">SAP BTP</span>
+            <span class="badge-tag">S/4HANA</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI tiles -->
+      <div class="kpi-row">
+        <div class="kpi-tile kpi-md">
+          <div class="kpi-icon ki-md">🗄️</div>
+          <div class="kpi-num" id="kpi-md">0</div>
+          <div class="kpi-lbl">Master Data</div>
+          <div class="kpi-sub">ERRORS</div>
+        </div>
+        <div class="kpi-tile kpi-tr">
+          <div class="kpi-icon ki-tr">⚙️</div>
+          <div class="kpi-num" id="kpi-tr">0</div>
+          <div class="kpi-lbl">Transaction</div>
+          <div class="kpi-sub">ERRORS</div>
+        </div>
+        <div class="kpi-tile kpi-cfg">
+          <div class="kpi-icon ki-cfg">🔧</div>
+          <div class="kpi-num" id="kpi-cfg">0</div>
+          <div class="kpi-lbl">Config</div>
+          <div class="kpi-sub">ERRORS</div>
+        </div>
+        <div class="kpi-tile kpi-au">
+          <div class="kpi-icon ki-au">🛡️</div>
+          <div class="kpi-num" id="kpi-au">0</div>
+          <div class="kpi-lbl">Authorization</div>
+          <div class="kpi-sub">ERRORS</div>
+        </div>
+      </div>
+
+      <!-- Info cards -->
+      <div class="info-row">
+        <!-- How CORA works -->
+        <div class="info-card">
+          <div class="info-card-hd">
+            <div class="info-icon ii-blue">⚡</div>
+            <div class="info-title">How CORA Works</div>
+          </div>
+          <div class="steps">
+            <div class="step"><div class="step-num">1</div><div><div class="step-title">Select an Error</div><div class="step-desc">Pick from the error queue on the left</div></div></div>
+            <div class="step"><div class="step-num">2</div><div><div class="step-title">AI Analysis</div><div class="step-desc">CORA identifies the root cause instantly</div></div></div>
+            <div class="step"><div class="step-num">3</div><div><div class="step-title">Execute Fix</div><div class="step-desc">Apply the AI-recommended corrective action</div></div></div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="info-card">
+          <div class="info-card-hd">
+            <div class="info-icon ii-green">✅</div>
+            <div class="info-title">Quick Actions</div>
+          </div>
+          <div class="qa-list">
+            <button class="qa-btn" onclick="quickAsk('Why did my posting fail?')">Why did my posting fail?</button>
+            <button class="qa-btn" onclick="quickAsk('Top recurring errors this month')">Top recurring errors this month</button>
+            <button class="qa-btn" onclick="quickAsk('Show all authorization errors')">Show all authorization errors</button>
+            <button class="qa-btn" onclick="quickAsk('Recommend corrective action for budget overrun')">Recommend corrective action for budget overrun</button>
+          </div>
+        </div>
+
+        <!-- SAP Error Layers -->
+        <div class="info-card">
+          <div class="info-card-hd">
+            <div class="info-icon ii-purple">📋</div>
+            <div class="info-title">SAP Error Layers</div>
+          </div>
+          <div class="layer-guide">
+            <div class="layer-row"><div class="layer-dot" style="background:var(--master)"></div><div><div class="lr-name">Master Data</div><div class="lr-desc">Cost center config, validity, hierarchy</div></div></div>
+            <div class="layer-row"><div class="layer-dot" style="background:var(--trans)"></div><div><div class="lr-name">Transaction</div><div class="lr-desc">Posting periods, budget, cost elements</div></div></div>
+            <div class="layer-row"><div class="layer-dot" style="background:var(--config)"></div><div><div class="lr-name">Configuration</div><div class="lr-desc">System settings, account assignments</div></div></div>
+            <div class="layer-row"><div class="layer-dot" style="background:var(--auth)"></div><div><div class="lr-name">Authorization</div><div class="lr-desc">Role assignments, K_CSKS object auth</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /welcome -->
+
+    <!-- Error detail card -->
+    <div class="detail-card" id="detailCard">
+      <div class="detail-hd">
+        <div style="display:flex;align-items:flex-start;flex:1;min-width:0">
+          <div class="detail-icon">⚠️</div>
+          <div style="min-width:0">
+            <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+              <span class="detail-code" id="detCode">—</span>
+              <span class="err-badge" id="detStatus">OPEN</span>
+              <span class="layer-tag" id="detLayer">—</span>
+            </div>
+            <div class="detail-err-txt" id="detErrTxt">—</div>
+          </div>
+        </div>
+        <button class="dismiss-btn" onclick="dismissDetail()" title="Dismiss">✕</button>
+      </div>
+      <div class="detail-meta" id="detMeta"></div>
+      <div class="root-cause-strip" id="rootCauseStrip"></div>
+    </div>
+
+    <!-- AI Recommendations -->
+    <div class="recs-section" id="recsSection">
+      <div class="recs-hd">
+        <div style="display:flex;align-items:center">
+          <span style="color:#f0a500;margin-right:.4rem">💡</span>
+          <span class="recs-title">AI Recommendations</span>
+          <span class="recs-count" id="recsCount"></span>
+        </div>
+        <button class="dismiss-btn" onclick="toggleRecs()" id="recsToggle">▲</button>
+      </div>
+      <div class="recs-scroll" id="recsScroll">
+        <div class="recs-row" id="recsRow"></div>
+      </div>
+    </div>
+
+    <!-- Chat -->
+    <div class="chat-section">
+      <div class="chat-hd">
+        <div class="chat-hd-left">
+          <div class="chat-avatar-sm">🤖</div>
+          <span class="chat-title">CORA Assistant</span>
+        </div>
+        <button class="clear-btn" onclick="clearChat()">Clear Chat</button>
+      </div>
+      <div class="msgs-area" id="msgsArea">
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">💬</div>
+          <div class="empty-hint">Select an error from the queue to start, or ask CORA anything about SAP cost center errors.</div>
+        </div>
+      </div>
+      <div class="thinking" id="thinking" style="display:none">
+        <div class="bot-avatar" style="width:1.5rem;height:1.5rem;font-size:.7rem">🤖</div>
+        <div class="dots"><span></span><span></span><span></span></div>
+        <span class="thinking-txt">CORA is analyzing…</span>
+      </div>
+      <div class="input-bar">
+        <textarea class="msg-input" id="msgInput" rows="1" placeholder="Ask CORA about a cost center error…"
+          onkeydown="handleKey(event)" oninput="autoGrow(this)"></textarea>
+        <button class="send-btn" onclick="sendMsg()">➤</button>
+      </div>
+    </div>
+
+  </div><!-- /main-pane -->
+</div><!-- /layout -->
+
+<!-- Quick-ask result modal -->
+<div class="modal-overlay" id="qaModal">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title" id="qaTitle">—</span>
+      <button class="modal-close" onclick="closeQaModal()">✕</button>
+    </div>
+    <div class="modal-body" id="qaBody"></div>
+    <div class="modal-recs" id="qaRecs" style="padding:0 1.25rem .75rem"></div>
+    <div class="modal-ft"><button class="modal-ok" onclick="closeQaModal()">Close</button></div>
+  </div>
+</div>
+
+<!-- Action confirm modal -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal confirm-modal">
+    <div class="modal-hd">
+      <span class="modal-title">Confirm Action</span>
+      <button class="modal-close" onclick="closeConfirm()">✕</button>
+    </div>
+    <div class="modal-body" id="confirmBody"></div>
+    <div class="modal-ft confirm-btns">
+      <button class="btn-cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="btn-ok" id="confirmOk">Execute</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════════
+let ALL_ERRORS      = [];
+let DISPLAYED_ERRORS = [];
+let CURRENT_ERROR   = null;
+let SESSION_ID      = uuid();
+let MESSAGES        = [];
+let RECS            = [];
+let RECS_VISIBLE    = true;
+let BUSY            = false;
+
+// ════════════════════════════════════════════════════════════
+//  MOCK DATA
+// ════════════════════════════════════════════════════════════
+const SAMPLE_ERRORS = [
+  { ID:'e1', errorCode:'KS113', messageClass:'KS', messageNumber:'113', errorText:'Cost Center CC1000 is blocked for primary postings in period 05/2026', documentNumber:'1800001234', costCenter:'CC1000', companyCode:'1000', controllingArea:'A000', fiscalYear:'2026', fiscalPeriod:'005', userId:'SARAH', processContext:'Manual journal entry posting', status:'OPEN', layer:'MASTER_DATA' },
+  { ID:'e2', errorCode:'BU011', messageClass:'BU', messageNumber:'011', errorText:'Posting period 05/2026 is closed for account type S in company code 1000', documentNumber:'1800001235', costCenter:'CC2000', companyCode:'1000', controllingArea:'A000', fiscalYear:'2026', fiscalPeriod:'005', userId:'BATCH_JOB', processContext:'Overnight batch posting run', status:'OPEN', layer:'TRANSACTION' },
+  { ID:'e3', errorCode:'KP006', messageClass:'KP', messageNumber:'006', errorText:'Budget exceeded for cost center CC3000, cost element 430000 by EUR 15,000', documentNumber:'', costCenter:'CC3000', companyCode:'1000', controllingArea:'A000', fiscalYear:'2026', fiscalPeriod:'005', userId:'ALICE', processContext:'Purchase order commitment check', status:'OPEN', layer:'TRANSACTION' },
+  { ID:'e4', errorCode:'7Q299', messageClass:'7Q', messageNumber:'299', errorText:'User BOB does not have authorization for object K_CSKS on cost center CC4000', documentNumber:'', costCenter:'CC4000', companyCode:'1000', controllingArea:'A000', fiscalYear:'2026', fiscalPeriod:'005', userId:'BOB', processContext:'Cost center report display', status:'OPEN', layer:'AUTHORIZATION' },
+  { ID:'e5', errorCode:'KI235', messageClass:'KI', messageNumber:'235', errorText:'Cost element 430500 is not assigned to cost center category A for CC5000', documentNumber:'1800001236', costCenter:'CC5000', companyCode:'2000', controllingArea:'A000', fiscalYear:'2026', fiscalPeriod:'005', userId:'ALICE', processContext:'Direct activity allocation', status:'IN_PROGRESS', layer:'TRANSACTION' },
+  { ID:'e6', errorCode:'KI261', messageClass:'KI', messageNumber:'261', errorText:'Assessment cycle EMEA_IT_ALLOC failed — receiver cost center CC5050 is expired', documentNumber:'', costCenter:'CC5050', companyCode:'1000', controllingArea:'A000', fiscalYear:'2026', fiscalPeriod:'005', userId:'SYSTEM', processContext:'Month-end allocation cycle EMEA_IT_ALLOC', status:'OPEN', layer:'TRANSACTION' },
+  { ID:'e7', errorCode:'KP042', messageClass:'KP', messageNumber:'042', errorText:'Activity type MACH_HR is not assigned to cost center CC2000 for fiscal year 2026', documentNumber:'1800001237', costCenter:'CC2000', companyCode:'1000', controllingArea:'A000', fiscalYear:'2026', fiscalPeriod:'005', userId:'PROD_CTRL', processContext:'Internal order machine hours confirmation', status:'OPEN', layer:'TRANSACTION' },
+  { ID:'e8', errorCode:'KS124', messageClass:'KS', messageNumber:'124', errorText:'Cost center CC6000 is not valid on posting date 31.05.2026 — validity expired 28.02.2026', documentNumber:'1800001238', costCenter:'CC6000', companyCode:'1000', controllingArea:'A000', fiscalYear:'2026', fiscalPeriod:'005', userId:'FINANCE_OPS', processContext:'Vendor invoice posting — travel expenses', status:'OPEN', layer:'MASTER_DATA' },
+  { ID:'e9', errorCode:'KO210', messageClass:'KO', messageNumber:'210', errorText:'Settlement rule missing for cost center CC3100 — no valid receiver defined', documentNumber:'', costCenter:'CC3100', companyCode:'1000', controllingArea:'A000', fiscalYear:'2026', fiscalPeriod:'005', userId:'SYSTEM', processContext:'Period-end settlement run CO88', status:'OPEN', layer:'CONFIG' },
+  { ID:'e10',errorCode:'SU53',  messageClass:'SU', messageNumber:'053', errorText:'Authorization check failed for transaction KS02 — missing activity 02 on object S_TCODE', documentNumber:'', costCenter:'CC7000', companyCode:'1000', controllingArea:'A000', fiscalYear:'2026', fiscalPeriod:'005', userId:'CAROL', processContext:'Cost center master data change', status:'OPEN', layer:'AUTHORIZATION' },
+];
+
+const AI_RESPONSES = {
+  'e1': {
+    rootCause: 'Cost center CC1000 has an active primary posting block set during period-end close on 31-May-2026. The block prevents all primary cost postings (wages, materials, overhead) in fiscal period 05/2026. The cost center has been valid since 01-Jan-2020 and is assigned to Profit Center PC-EMEA.',
+    recs: [
+      { priority:'HIGH', confidence:94, title:'Unlock Cost Center via Fiori App', description:'Remove the primary posting block on CC1000 using the Manage Cost Centers app (F1482). Navigate to the Blocking Indicators tab and clear the "Block for Primary Costs" flag.', actionCode:'UPDATE_COSTCENTER' },
+      { priority:'MEDIUM', confidence:78, title:'Use Alternative Active Cost Center', description:'CC1001 is active and accepts primary postings. Re-route the journal entry to CC1001 as a temporary measure until CC1000 is unlocked.', actionCode:'CREATE_WORKFLOW' },
+      { priority:'LOW', confidence:72, title:'Create Workflow Approval Request', description:'Raise an approval ticket to the CO team for emergency unlock. Typical SLA is 2 hours during business hours.', actionCode:'CREATE_WORKFLOW' },
+    ]
+  },
+  'e2': {
+    rootCause: 'Fiscal period 05/2026 (May 2026) has been closed for account type S (GL accounts) in company code 1000. Period-end close was executed on 31-May-2026 by the CO team. All OPEN postings targeting this period are now blocked at the system level.',
+    recs: [
+      { priority:'HIGH', confidence:91, title:'Re-open Period 05/2026 Temporarily', description:'Use transaction OB52 or the Manage Posting Periods Fiori app to temporarily re-open period 05 for the affected account types. Requires Controlling Admin authorization.', actionCode:'LAUNCH_FIORI' },
+      { priority:'MEDIUM', confidence:82, title:'Repost to Current Period 06/2026', description:'Change the posting date on document 1800001235 to a date within the currently open period 06/2026. Verify accounting impact with your controller before proceeding.', actionCode:'RETRY_POSTING' },
+      { priority:'LOW', confidence:65, title:'Escalate to CO Team', description:'Submit an escalation request to the Controlling team to assess whether a period re-open is permissible under current audit and compliance constraints.', actionCode:'ESCALATE' },
+    ]
+  },
+  'e3': {
+    rootCause: 'Cost center CC3000 has exceeded its approved budget for cost element 430000 (General Overhead) by EUR 15,000 in fiscal year 2026. The budget was set at EUR 120,000 for the full year; current consumption stands at EUR 135,000. The overrun triggered a hard budget check configured by the CO team.',
+    recs: [
+      { priority:'HIGH', confidence:88, title:'Request Budget Supplement', description:'Submit a budget supplement request via the Cost Center Budget Fiori app (F0840) to increase the approved budget for cost element 430000 by at least EUR 15,000. Requires management approval.', actionCode:'CREATE_WORKFLOW' },
+      { priority:'MEDIUM', confidence:76, title:'Re-classify Costs to Overhead Order', description:'Move EUR 15,000 of costs from CC3000 to internal order IO-OVHD-2026 which has available budget. Use transaction KB11N or the Cost Reposting app.', actionCode:'RETRY_POSTING' },
+      { priority:'LOW', confidence:60, title:'Disable Budget Check Temporarily', description:'Temporarily change the budget check from "Error" to "Warning" for CC3000 to allow the posting. This requires Controlling Admin role and must be reverted after period close.', actionCode:'ESCALATE' },
+    ]
+  },
+  'e4': {
+    rootCause: 'User BOB is missing the SAP authorization object K_CSKS with activity 03 (Display) for cost center CC4000. The authorization check was triggered when BOB attempted to access the cost center reporting transaction. BOB\'s current role profile does not include the Controlling area A000 / cost center group assignment required for CC4000.',
+    recs: [
+      { priority:'HIGH', confidence:96, title:'Add Controlling Viewer Role to User BOB', description:'Assign role SAP_FI_CO_COSTCENTER_DISPLAY to BOB in transaction SU01 or via the Identity Management system. This grants K_CSKS activity 03 for all cost centers in A000.', actionCode:'CREATE_WORKFLOW' },
+      { priority:'MEDIUM', confidence:80, title:'Grant Temporary Access via SU53', description:'Review the SU53 authorization trace for BOB to confirm the exact missing authorization values, then create a targeted authorization supplement in the user\'s role.', actionCode:'ESCALATE' },
+    ]
+  },
+  'e5': {
+    rootCause: 'Cost element 430500 (Activity Allocation) is not assigned to cost center category A in the cost center master data for CC5000. The direct activity allocation from production order ORDS-2341 requires this cost element to be valid for the receiving cost center\'s category. The cost element was recently restructured in the chart of accounts.',
+    recs: [
+      { priority:'HIGH', confidence:89, title:'Assign Cost Element to CC Category A', description:'Open the Cost Element master (transaction KA02 / Manage Cost Elements F2610) and add cost center category A to the valid assignments for cost element 430500.', actionCode:'LAUNCH_FIORI' },
+      { priority:'MEDIUM', confidence:74, title:'Change Cost Center Category', description:'If CC5000 should logically accept activity allocations, consider changing its category from A to a category that permits cost element 430500. Use Manage Cost Centers (F1482).', actionCode:'UPDATE_COSTCENTER' },
+    ]
+  },
+  'e6': {
+    rootCause: 'Assessment cycle EMEA_IT_ALLOC references CC5050 as a receiver cost center, but CC5050\'s validity end date is 30-Apr-2026. The month-end allocation run for period 05/2026 fails because it cannot post to an expired cost center. The cycle needs to be updated to reflect the current organizational structure.',
+    recs: [
+      { priority:'HIGH', confidence:92, title:'Extend CC5050 Validity Date', description:'Extend the validity end date of cost center CC5050 to at least 31-Dec-2026 using Manage Cost Centers (F1482). This allows the assessment cycle to run successfully.', actionCode:'UPDATE_COSTCENTER' },
+      { priority:'MEDIUM', confidence:77, title:'Update Assessment Cycle Receiver', description:'Open the assessment cycle EMEA_IT_ALLOC in transaction KSU2 / Manage Allocation Cycles (F1381) and replace CC5050 with the new receiver cost center in the cycle definition.', actionCode:'LAUNCH_FIORI' },
+      { priority:'LOW', confidence:65, title:'Create Workflow for CO Team Review', description:'Raise a workflow ticket for the CO team to review the organizational structure change and update all allocation cycles referencing CC5050.', actionCode:'CREATE_WORKFLOW' },
+    ]
+  },
+  'e7': {
+    rootCause: 'Activity type MACH_HR (Machine Hours) is not assigned to cost center CC2000 in the controlling area A000 for fiscal year 2026. The activity type assignment (planned activity quantity and price) must be defined via cost center planning before it can be used in internal order confirmations. A planning version for 2026 may not yet be created for this cost center.',
+    recs: [
+      { priority:'HIGH', confidence:87, title:'Assign Activity Type to CC2000 in Planning', description:'Use transaction KP26 or the Activity Type Planning Fiori app to define MACH_HR on CC2000 for fiscal year 2026. Set planned activity quantity and price as agreed with production controlling.', actionCode:'CREATE_WORKFLOW' },
+      { priority:'MEDIUM', confidence:71, title:'Use Alternative Activity Type', description:'If MACH_HR is not applicable for CC2000, review whether an alternative activity type (e.g., MACH_STD) is already assigned and adjust the order confirmation accordingly.', actionCode:'RETRY_POSTING' },
+    ]
+  },
+  'e8': {
+    rootCause: 'Cost center CC6000 has a validity end date of 28-Feb-2026 in SAP master data. The vendor invoice posting dated 31-May-2026 fails because the posting date falls outside the valid period of the cost center. The cost center has been operationally decommissioned but postings are still being routed to it.',
+    recs: [
+      { priority:'HIGH', confidence:93, title:'Extend CC6000 Validity to Year-End', description:'Extend the validity end date of CC6000 to 31-Dec-2026 using Manage Cost Centers (F1482). Consult the responsible cost center manager before extending to ensure this is intentional.', actionCode:'UPDATE_COSTCENTER' },
+      { priority:'MEDIUM', confidence:79, title:'Redirect Posting to Active Cost Center', description:'Update the vendor invoice or account assignment to route the EUR travel expenses to the successor cost center CC6001 which is active for the full fiscal year 2026.', actionCode:'RETRY_POSTING' },
+      { priority:'LOW', confidence:63, title:'Escalate to CO Master Data Team', description:'The decommissioning of CC6000 may have been incomplete. Raise a ticket to the CO master data team to review and properly close out the cost center.', actionCode:'ESCALATE' },
+    ]
+  },
+  'e9': {
+    rootCause: 'Cost center CC3100 does not have a valid settlement rule defined for period 05/2026. The settlement rule (defining receiver object, distribution rule type, and settlement share) must be configured before the period-end settlement run CO88 can process this cost center. This is a configuration gap, likely from a recent reorganization.',
+    recs: [
+      { priority:'HIGH', confidence:90, title:'Define Settlement Rule for CC3100', description:'Open cost center CC3100 in transaction KS02 or Manage Cost Centers (F1482), navigate to the Settlement Rule tab, and define the receiver (e.g., profit center or G/L account) with 100% settlement share.', actionCode:'LAUNCH_FIORI' },
+      { priority:'MEDIUM', confidence:75, title:'Create CO Workflow for Settlement Rule Approval', description:'Submit a change request to the Controlling team to define the correct settlement receiver for CC3100 based on the organizational hierarchy.', actionCode:'CREATE_WORKFLOW' },
+    ]
+  },
+  'e10': {
+    rootCause: 'User CAROL lacks the required authorization for activity 02 (Change) on authorization object S_TCODE for transaction KS02 (Change Cost Center). The SU53 trace confirms the authorization check failed at the transaction code level. CAROL\'s current role includes read-only controlling access but not the change authorization needed for master data maintenance.',
+    recs: [
+      { priority:'HIGH', confidence:97, title:'Add Cost Center Change Role to CAROL', description:'Assign role SAP_FI_CO_COSTCENTER_MAINTAIN to user CAROL via SU01 or the Identity Management portal. This grants activity 02 on S_TCODE for KS02 and related change transactions.', actionCode:'CREATE_WORKFLOW' },
+      { priority:'LOW', confidence:72, title:'Request Temporary Elevated Access', description:'Submit a temporary elevated access request through the GRC Access Control system for CAROL to perform the required master data change. Access can be time-limited to 24 hours.', actionCode:'ESCALATE' },
+    ]
+  },
+};
+
+const QUICK_RESPONSES = {
+  'Why did my posting fail?': {
+    answer: `Postings typically fail in SAP S/4HANA due to one of four root causes:
+
+1. MASTER DATA issue — The cost center is blocked, expired, or not valid for the posting date. Example: KS113 (posting block), KS124 (validity expired).
+
+2. TRANSACTION issue — The posting period is closed, the budget is exhausted, or required cost element assignments are missing. Example: BU011 (period closed), KP006 (budget exceeded).
+
+3. CONFIGURATION issue — Settlement rules, allocation cycles, or activity type assignments are missing. Example: KO210 (no settlement rule), KP042 (activity type not assigned).
+
+4. AUTHORIZATION issue — The user lacks the required SAP authorization object (commonly K_CSKS for cost center access). Example: 7Q299, SU53.
+
+Select an error from the queue on the left — CORA will give you the precise root cause and recommended resolution for that specific error.`,
+    recs: []
+  },
+  'Top recurring errors this month': {
+    answer: `Based on current error data, the top recurring patterns this month are:
+
+1. KP006 (Budget Exceeded) — 3 occurrences across CC3000, CC3100, CC4500. Root cause: budget was not adjusted after Q2 reforecasting.
+
+2. KS113 (Cost Center Blocked) — 2 occurrences on CC1000, CC1500. Root cause: period-end blocking was applied too broadly.
+
+3. BU011 (Period Closed) — 2 occurrences from overnight batch jobs. Root cause: batch jobs are not respecting the period close calendar.
+
+4. 7Q299 (Authorization Failure) — 2 occurrences for users BOB, CAROL. Root cause: new joiners did not receive Controlling Viewer roles.
+
+Recommendation: Address the budget planning cycle and the role assignment process to reduce recurrence by ~45% next month.`,
+    recs: []
+  },
+  'Show all authorization errors': {
+    answer: `There are currently 2 authorization errors in the queue:
+
+• 7Q299 on CC4000 — User BOB missing K_CSKS authorization (activity 03 Display)
+• SU53 on CC7000 — User CAROL missing S_TCODE activity 02 for transaction KS02
+
+Both errors are caused by missing role assignments. The recommended resolution is to assign the appropriate SAP standard roles:
+  - SAP_FI_CO_COSTCENTER_DISPLAY for read-only access
+  - SAP_FI_CO_COSTCENTER_MAINTAIN for change access
+
+Authorization errors in this system typically have a 97% AI confidence rate because the root cause pattern is unambiguous — the SU53 trace provides exact missing authorization values.`,
+    recs: []
+  },
+  'Recommend corrective action for budget overrun': {
+    answer: `For a budget overrun error (KP006 / KP042), CORA recommends the following corrective actions in priority order:
+
+HIGH — Request Budget Supplement (Confidence: 88%)
+Submit a budget supplement request via the Cost Center Budget Fiori app (F0840). This is the proper channel when the overspend is legitimate and management-approved.
+
+MEDIUM — Cost Re-classification (Confidence: 76%)
+Move costs to an internal order or alternative cost center with available budget. Use transaction KB11N or the Cost Reposting Fiori app. This is suitable for interim relief while the supplement is being approved.
+
+LOW — Temporary Warning Mode (Confidence: 60%)
+Change the budget check severity from Error to Warning in the cost center settings. Use only as a last resort during month-end close when formal approval cannot be obtained in time.
+
+Note: Always document the business justification for budget overruns in the workflow ticket for audit trail purposes.`,
+    recs: []
+  }
+};
+
+// ════════════════════════════════════════════════════════════
+//  RENDER HELPERS
+// ════════════════════════════════════════════════════════════
+function layerColor(layer) {
+  return {MASTER_DATA:'var(--master)',TRANSACTION:'var(--trans)',CONFIG:'var(--config)',AUTHORIZATION:'var(--auth)'}[layer] || '#888';
+}
+function layerLabel(layer) {
+  return {MASTER_DATA:'Master Data',TRANSACTION:'Transaction',CONFIG:'Config',AUTHORIZATION:'Authorization'}[layer] || layer;
+}
+function layerTagClass(layer) {
+  return {MASTER_DATA:'lt-md',TRANSACTION:'lt-tr',CONFIG:'lt-cfg',AUTHORIZATION:'lt-au'}[layer] || 'lt-uk';
+}
+function statusBadgeClass(status) {
+  return {OPEN:'badge-open',IN_PROGRESS:'badge-ip',RESOLVED:'badge-res'}[status] || 'badge-open';
+}
+
+// ════════════════════════════════════════════════════════════
+//  ERROR LIST
+// ════════════════════════════════════════════════════════════
+function loadErrors() {
+  if (ALL_ERRORS.length === 0) {
+    showToast('No errors loaded. Click ➕ to ingest sample data.');
+    return;
+  }
+  renderErrorList();
+  showToast('Error list refreshed.');
+}
+
+function ingestSample() {
+  ALL_ERRORS = JSON.parse(JSON.stringify(SAMPLE_ERRORS));
+  renderErrorList();
+  updateKPIs();
+  showToast('Ingested 10 sample errors.');
+}
+
+function resetData() {
+  ALL_ERRORS = [];
+  DISPLAYED_ERRORS = [];
+  CURRENT_ERROR = null;
+  MESSAGES = [];
+  RECS = [];
+  document.getElementById('errorList').innerHTML = `<div class="empty-state" style="padding:2rem 1rem"><div class="empty-icon">📋</div><div class="empty-hint">No errors loaded yet.<br>Click ➕ in the header to load sample data.</div></div>`;
+  document.getElementById('queueSub').textContent = '0 open item(s)';
+  document.getElementById('heroErrCount').textContent = '0 errors monitored';
+  showDetailCard(false);
+  document.getElementById('recsSection').style.display = 'none';
+  document.getElementById('welcome').style.display = 'flex';
+  clearChat();
+  updateKPIs();
+  showToast('Mock data reset.');
+}
+
+function filterErrors() {
+  renderErrorList();
+}
+
+function renderErrorList() {
+  const layer = document.getElementById('layerFilter').value;
+  DISPLAYED_ERRORS = layer ? ALL_ERRORS.filter(e => e.layer === layer) : [...ALL_ERRORS];
+  const list = document.getElementById('errorList');
+  document.getElementById('queueSub').textContent = DISPLAYED_ERRORS.length + ' open item(s)';
+  document.getElementById('heroErrCount').textContent = ALL_ERRORS.length + ' errors monitored';
+
+  if (DISPLAYED_ERRORS.length === 0) {
+    list.innerHTML = `<div class="empty-state" style="padding:2rem 1rem"><div class="empty-icon">🎉</div><div class="empty-hint">No errors for this filter — all clear!</div></div>`;
+    return;
+  }
+
+  list.innerHTML = DISPLAYED_ERRORS.map(e => `
+    <div class="err-card ${CURRENT_ERROR && CURRENT_ERROR.ID === e.ID ? 'active' : ''}" onclick="selectError('${e.ID}')">
+      <div class="err-accent" style="background:${layerColor(e.layer)}"></div>
+      <div class="err-body">
+        <div class="err-row1">
+          <span class="err-code">${e.errorCode}</span>
+          <span class="err-badge ${statusBadgeClass(e.status)}">${e.status.replace('_',' ')}</span>
+        </div>
+        <div class="err-cc">${e.costCenter} · ${e.companyCode}</div>
+        <div class="err-txt">${e.errorText}</div>
+        <div class="err-row3">
+          <span class="layer-tag ${layerTagClass(e.layer)}">${layerLabel(e.layer)}</span>
+          <span class="err-period">${e.fiscalYear}/${e.fiscalPeriod}</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function updateKPIs() {
+  const counts = {MASTER_DATA:0,TRANSACTION:0,CONFIG:0,AUTHORIZATION:0};
+  ALL_ERRORS.forEach(e => { if (counts[e.layer] !== undefined) counts[e.layer]++; });
+  document.getElementById('kpi-md').textContent  = counts.MASTER_DATA;
+  document.getElementById('kpi-tr').textContent  = counts.TRANSACTION;
+  document.getElementById('kpi-cfg').textContent = counts.CONFIG;
+  document.getElementById('kpi-au').textContent  = counts.AUTHORIZATION;
+}
+
+// ════════════════════════════════════════════════════════════
+//  ERROR SELECTION
+// ════════════════════════════════════════════════════════════
+function selectError(id) {
+  CURRENT_ERROR = ALL_ERRORS.find(e => e.ID === id);
+  if (!CURRENT_ERROR) return;
+  renderErrorList();
+  document.getElementById('welcome').style.display = 'none';
+  showDetailCard(true);
+  RECS = [];
+  document.getElementById('recsSection').style.display = 'none';
+  const autoMsg = `Analyze this SAP error: ${CURRENT_ERROR.errorCode} — "${CURRENT_ERROR.errorText}" on cost center ${CURRENT_ERROR.costCenter} (${CURRENT_ERROR.companyCode}).`;
+  sendMessage(autoMsg, true);
+}
+
+function showDetailCard(show) {
+  const card = document.getElementById('detailCard');
+  card.style.display = show ? 'block' : 'none';
+  if (!show || !CURRENT_ERROR) return;
+  const e = CURRENT_ERROR;
+  document.getElementById('detCode').textContent   = e.errorCode;
+  document.getElementById('detErrTxt').textContent = e.errorText;
+
+  const statusEl = document.getElementById('detStatus');
+  statusEl.textContent  = e.status.replace('_',' ');
+  statusEl.className    = 'err-badge ' + statusBadgeClass(e.status);
+
+  const layerEl = document.getElementById('detLayer');
+  layerEl.textContent = layerLabel(e.layer);
+  layerEl.className   = 'layer-tag ' + layerTagClass(e.layer);
+
+  document.getElementById('detMeta').innerHTML = [
+    ['COST CENTER', e.costCenter], ['COMPANY CODE', e.companyCode], ['FISCAL PERIOD', e.fiscalYear + ' / ' + e.fiscalPeriod],
+    ['DOCUMENT NO.', e.documentNumber || '—'], ['USER', e.userId], ['CTRL AREA', e.controllingArea],
+  ].map(([l,v]) => `<div class="meta-cell"><div class="meta-lbl">${l}</div><div class="meta-val">${v}</div></div>`).join('');
+
+  document.getElementById('rootCauseStrip').style.display = 'none';
+}
+
+function dismissDetail() {
+  CURRENT_ERROR = null;
+  RECS = [];
+  showDetailCard(false);
+  document.getElementById('recsSection').style.display = 'none';
+  document.getElementById('welcome').style.display = 'flex';
+  renderErrorList();
+}
+
+// ════════════════════════════════════════════════════════════
+//  RECOMMENDATIONS
+// ════════════════════════════════════════════════════════════
+function renderRecs(recs) {
+  RECS = recs;
+  const section = document.getElementById('recsSection');
+  const row     = document.getElementById('recsRow');
+  if (!recs || recs.length === 0) { section.style.display = 'none'; return; }
+
+  section.style.display = 'block';
+  document.getElementById('recsCount').textContent = recs.length + ' suggestion(s)';
+  row.innerHTML = recs.map((r,i) => {
+    const prioClass = r.priority==='HIGH'?'p-high':r.priority==='MEDIUM'?'p-med':'p-low';
+    const confClass = r.confidence>=90?'ch-high':r.confidence>=70?'ch-med':'ch-low';
+    const fillClass = r.confidence>=90?'cf-high':r.confidence>=70?'cf-med':'cf-low';
+    return `
+      <div class="rec-card" style="border-top:4px solid ${r.priority==='HIGH'?'var(--error)':r.priority==='MEDIUM'?'var(--warn)':'var(--ok)'}">
+        <div class="rec-top">
+          <span class="prio-tag ${prioClass}">${r.priority}</span>
+          <span class="conf-chip ${confClass}">${Math.round(r.confidence)}%</span>
+        </div>
+        <div class="rec-title">${r.title}</div>
+        <div class="rec-desc">${r.description}</div>
+        <div class="conf-bar"><div class="conf-fill ${fillClass}" style="width:${r.confidence}%"></div></div>
+        <div class="rec-actions">
+          <button class="exec-btn active" id="execBtn${i}" onclick="confirmExec(${i})">Execute Action</button>
+          <div class="fb-btns">
+            <button class="fb-btn" onclick="sendFeedback(${i},true)" title="Helpful">👍</button>
+            <button class="fb-btn" onclick="sendFeedback(${i},false)" title="Not helpful">👎</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function toggleRecs() {
+  RECS_VISIBLE = !RECS_VISIBLE;
+  document.getElementById('recsScroll').style.display  = RECS_VISIBLE ? 'block' : 'none';
+  document.getElementById('recsToggle').textContent    = RECS_VISIBLE ? '▲' : '▼';
+}
+
+function confirmExec(idx) {
+  const rec = RECS[idx];
+  if (!rec) return;
+  const body = document.getElementById('confirmBody');
+  body.textContent = `Execute: "${rec.title}"\n\n${rec.description}`;
+  document.getElementById('confirmOk').onclick = () => { executeRec(idx); closeConfirm(); };
+  document.getElementById('confirmModal').classList.add('open');
+}
+
+function executeRec(idx) {
+  const rec = RECS[idx];
+  if (!rec) return;
+  const btn = document.getElementById('execBtn' + idx);
+  if (btn) { btn.textContent = '✓ Executed'; btn.className = 'exec-btn done'; btn.disabled = true; }
+
+  const workflowId = 'WF-' + Math.floor(Math.random() * 9000000 + 1000000);
+  const resultMap = {
+    RETRY_POSTING:       `✅ Action completed: Posting document ${CURRENT_ERROR?.documentNumber || 'N/A'} resubmitted for reprocessing.`,
+    CREATE_WORKFLOW:     `✅ Action completed: Workflow ticket created successfully.\n\nWorkflow ID: **${workflowId}**`,
+    UPDATE_COSTCENTER:   `✅ Action completed: Cost center ${CURRENT_ERROR?.costCenter || ''} updated — posting block cleared.`,
+    LAUNCH_FIORI:        `✅ Action completed: Fiori deep-link ready.\n\nIn production this would open your SAP Fiori Launchpad at the correct transaction.`,
+    ESCALATE:            `✅ Action completed: Escalation notification sent to Controlling team lead via MS Teams.`,
+  };
+  appendBotMsg(resultMap[rec.actionCode] || '✅ Action executed successfully.');
+  showToast('Action executed: ' + rec.title);
+}
+
+function sendFeedback(idx, helpful) {
+  showToast(helpful ? 'Thanks — feedback recorded! 👍' : 'Feedback noted — we\'ll improve. 👎');
+}
+
+function closeConfirm() {
+  document.getElementById('confirmModal').classList.remove('open');
+}
+
+// ════════════════════════════════════════════════════════════
+//  CHAT
+// ════════════════════════════════════════════════════════════
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+}
+
+function autoGrow(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 112) + 'px';
+}
+
+function sendMsg() {
+  const input = document.getElementById('msgInput');
+  const text  = input.value.trim();
+  if (!text || BUSY) return;
+  input.value = '';
+  input.style.height = 'auto';
+  sendMessage(text, false);
+}
+
+function sendMessage(text, isAuto) {
+  document.getElementById('emptyState').style.display = 'none';
+  appendUserMsg(text);
+  showThinking(true);
+  BUSY = true;
+
+  setTimeout(() => {
+    let botMsg = '';
+    let recs   = [];
+
+    if (CURRENT_ERROR && AI_RESPONSES[CURRENT_ERROR.ID]) {
+      const ai = AI_RESPONSES[CURRENT_ERROR.ID];
+      botMsg = ai.rootCause;
+      recs   = ai.recs;
+      // Show root cause strip
+      const strip = document.getElementById('rootCauseStrip');
+      strip.textContent = '⚠ Root Cause: ' + ai.rootCause.split('.')[0] + '.';
+      strip.style.display = 'block';
+    } else {
+      botMsg = generateGenericResponse(text);
+    }
+
+    showThinking(false);
+    BUSY = false;
+    appendBotMsg(botMsg);
+    if (recs.length > 0) renderRecs(recs);
+    scrollBottom();
+  }, 1400 + Math.random() * 600);
+}
+
+function generateGenericResponse(text) {
+  const t = text.toLowerCase();
+  if (t.includes('period') && (t.includes('close') || t.includes('open'))) {
+    return 'Posting period errors (BU011, F5702) occur when a fiscal period has been closed for the relevant account type. The most common resolution is to either temporarily re-open the period via OB52, or to change the posting date to a period that is still open. Contact the Controlling Admin for period management access.';
+  }
+  if (t.includes('budget') || t.includes('exceed') || t.includes('kp006')) {
+    return 'Budget exceeded errors (KP006) are triggered when the actual/committed cost on a cost center surpasses the approved budget for a given cost element. Resolutions include: (1) requesting a budget supplement via F0840, (2) re-classifying costs to an alternative cost object, or (3) temporarily changing the budget availability check from Error to Warning.';
+  }
+  if (t.includes('auth') || t.includes('k_csks') || t.includes('su53') || t.includes('7q')) {
+    return 'Authorization errors (7Q299, SU53) indicate that the user lacks a required SAP authorization object. For cost center errors, the key object is K_CSKS with activity 03 (Display) or 02 (Change). Run transaction SU53 after the error to capture the exact missing authorization, then work with your Security Admin to assign the correct role.';
+  }
+  if (t.includes('block') || t.includes('ks113') || t.includes('ks124')) {
+    return 'Cost center blocking errors (KS113) occur when a posting block flag is set on the cost center master data. Use Manage Cost Centers (Fiori app F1482) to review and clear the blocking indicator. KS124 indicates the cost center validity has expired — extend the validity end date to cover the posting date.';
+  }
+  if (t.includes('allocation') || t.includes('cycle') || t.includes('ki261')) {
+    return 'Assessment cycle errors (KI261) typically occur when a receiver cost center referenced in the cycle definition has expired or been deactivated. Open the allocation cycle in transaction KSU2 or the Manage Allocation Cycles Fiori app (F1381) to review and correct the receiver assignments.';
+  }
+  return 'I\'m CORA, your SAP Cost Center Error Resolution assistant. I can help you diagnose and resolve errors in categories: Master Data (KS*), Transaction (BU*, KP*, KI*), Configuration (KO*, KSW*), and Authorization (7Q*, SU*).\n\nSelect a specific error from the queue on the left for an AI-powered root cause analysis, or ask me about a specific error code or scenario.';
+}
+
+function appendUserMsg(text) {
+  MESSAGES.push({role:'user', content:text, ts: time()});
+  const area = document.getElementById('msgsArea');
+  const div  = document.createElement('div');
+  div.className = 'msg-user';
+  div.innerHTML = `<div><div class="bubble-user">${escHtml(text)}</div><div class="ts" style="text-align:right">${time()}</div></div>`;
+  area.appendChild(div);
+  scrollBottom();
+}
+
+function appendBotMsg(text) {
+  MESSAGES.push({role:'assistant', content:text, ts: time()});
+  const area = document.getElementById('msgsArea');
+  const div  = document.createElement('div');
+  div.className = 'msg-bot';
+  div.innerHTML = `<div class="bot-avatar">🤖</div><div><div class="bubble-bot">${escHtml(text)}</div><div class="ts">${time()}</div></div>`;
+  area.appendChild(div);
+  scrollBottom();
+}
+
+function showThinking(show) {
+  document.getElementById('thinking').style.display = show ? 'flex' : 'none';
+}
+
+function clearChat() {
+  MESSAGES = [];
+  RECS = [];
+  const area = document.getElementById('msgsArea');
+  area.innerHTML = `<div class="empty-state" id="emptyState"><div class="empty-icon">💬</div><div class="empty-hint">Select an error from the queue to start, or ask CORA anything about SAP cost center errors.</div></div>`;
+  document.getElementById('recsSection').style.display = 'none';
+  const strip = document.getElementById('rootCauseStrip');
+  strip.style.display = 'none';
+}
+
+function scrollBottom() {
+  const area = document.getElementById('msgsArea');
+  setTimeout(() => { area.scrollTop = area.scrollHeight; }, 60);
+}
+
+// ════════════════════════════════════════════════════════════
+//  QUICK ASK
+// ════════════════════════════════════════════════════════════
+function quickAsk(question) {
+  const resp = QUICK_RESPONSES[question];
+  if (!resp) return;
+  document.getElementById('qaTitle').textContent = question;
+  document.getElementById('qaBody').textContent  = resp.answer;
+  const recsEl = document.getElementById('qaRecs');
+  recsEl.innerHTML = '';
+  if (resp.recs && resp.recs.length > 0) {
+    recsEl.innerHTML = '<div class="modal-rec-title">AI Recommendations</div>' +
+      resp.recs.map(r => `<div class="modal-rec-item"><div class="modal-rec-name">${r.title}</div><div class="modal-rec-desc">${r.description}</div></div>`).join('');
+  }
+  document.getElementById('qaModal').classList.add('open');
+}
+
+function closeQaModal() {
+  document.getElementById('qaModal').classList.remove('open');
+}
+
+// ════════════════════════════════════════════════════════════
+//  UTILITIES
+// ════════════════════════════════════════════════════════════
+function uuid() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+
+function time() {
+  return new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// Close modals on overlay click
+document.getElementById('qaModal').addEventListener('click', function(e) { if (e.target === this) closeQaModal(); });
+document.getElementById('confirmModal').addEventListener('click', function(e) { if (e.target === this) closeConfirm(); });
+
+// Auto-load sample data on first visit
+window.addEventListener('load', () => {
+  ingestSample();
+});
+</script>
+</body>
+</html>
