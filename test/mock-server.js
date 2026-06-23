@@ -132,8 +132,8 @@ app.post('/agent/chat', async (req, res) => {
   const message   = input.message   || '';
   const errorId   = input.errorId   || null;
 
-  // Simulate AI thinking delay (1.2–2.4s)
-  await sleep(1200 + Math.random() * 1200);
+  // Simulate AI thinking delay (300–500ms)
+  await sleep(300 + Math.random() * 200);
 
   // Find error context
   const error = errorId ? errors.find(e => e.ID === errorId) : null;
@@ -202,7 +202,7 @@ app.post('/agent/executeAction', async (req, res) => {
   const input = req.body?.input || req.body || {};
   const { errorId, recommendationId, actionCode, actionPayload } = input;
 
-  await sleep(700 + Math.random() * 600);
+  await sleep(150 + Math.random() * 150);
 
   let payload = {};
   try { payload = typeof actionPayload === 'string' ? JSON.parse(actionPayload) : (actionPayload || {}); } catch { /* ok */ }

@@ -3,6 +3,7 @@ using cc.errorresolution as db from '../db/schema';
 service ErrorService @(path: '/error') {
 
   // ─── Full CRUD entities ───────────────────────────────────────────────
+  @cds.redirection.target: true
   entity Errors           as projection on db.Errors;
   entity Recommendations  as projection on db.Recommendations;
   entity Actions          as projection on db.Actions;
@@ -47,7 +48,6 @@ service ErrorService @(path: '/error') {
     messageClass,
     costCenter,
     count(*) as occurrences : Integer,
-  } where createdAt >= $now - interval 30 day
-    group by errorCode, messageClass, costCenter
+  } group by errorCode, messageClass, costCenter
     order by occurrences desc;
 }

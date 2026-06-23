@@ -31,6 +31,7 @@ sap.ui.define([
         messages:        [],
         inputText:       "",
         busy:            false,
+        listBusy:        false,
         errorList:       [],
         currentError:    null,
         recommendations: [],
@@ -50,6 +51,8 @@ sap.ui.define([
         ? `(status eq 'OPEN' or status eq 'IN_PROGRESS') and layer eq '${this._activeLayer}'`
         : `status eq 'OPEN' or status eq 'IN_PROGRESS'`;
 
+      model.setProperty("/listBusy", true);
+
       fetch(`${ERROR}/Errors?$filter=${encodeURIComponent(filter)}&$orderby=createdAt desc&$top=50`)
         .then(r => r.json())
         .then(data => {
@@ -60,7 +63,8 @@ sap.ui.define([
         .catch(err => {
           console.warn("Error loading errors:", err);
           model.setProperty("/errorList", []);
-        });
+        })
+        .finally(() => model.setProperty("/listBusy", false));
     },
 
     _updateCounts: function (list) {
