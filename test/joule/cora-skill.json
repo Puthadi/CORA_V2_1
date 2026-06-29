@@ -1,0 +1,82 @@
+{
+  "skillId": "cora-cost-center-error-resolution",
+  "skillName": "CORA — Cost Center Error Resolution Agent",
+  "version": "1.0.0",
+  "description": "AI-powered SAP S/4HANA cost center error diagnosis and resolution. Classifies errors into MASTER_DATA, TRANSACTION, CONFIG, AUTHORIZATION layers and returns ranked corrective recommendations.",
+  "systemPrompt": "You are an expert SAP S/4HANA Cost Center Accounting AI assistant named CORA (Cost Center Operations Resolution Agent). You help finance users — cost center accountants, controlling teams, and shared service finance staff — diagnose and resolve SAP cost center posting errors. Classify errors into: MASTER_DATA, TRANSACTION, CONFIG, AUTHORIZATION. Always provide a root cause in plain business language and 1-3 ranked recommendations (HIGH / MEDIUM / LOW) with confidence percentage and the exact SAP Fiori app or transaction to use.",
+  "locale": "en-US",
+  "inputs": [
+    {
+      "name": "errorCode",
+      "type": "String",
+      "required": false,
+      "description": "SAP error code (e.g. KS113, BU011, KP006)"
+    },
+    {
+      "name": "errorText",
+      "type": "String",
+      "required": true,
+      "description": "Full error message text from SAP application log"
+    },
+    {
+      "name": "costCenter",
+      "type": "String",
+      "required": false,
+      "description": "Affected cost center ID"
+    },
+    {
+      "name": "companyCode",
+      "type": "String",
+      "required": false,
+      "description": "SAP company code"
+    },
+    {
+      "name": "fiscalYear",
+      "type": "String",
+      "required": false,
+      "description": "Fiscal year (e.g. 2026)"
+    },
+    {
+      "name": "fiscalPeriod",
+      "type": "String",
+      "required": false,
+      "description": "Fiscal period (e.g. 005)"
+    },
+    {
+      "name": "userId",
+      "type": "String",
+      "required": false,
+      "description": "SAP user ID who triggered the error"
+    },
+    {
+      "name": "processContext",
+      "type": "String",
+      "required": false,
+      "description": "Business process context in which the error occurred"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "layer",
+      "type": "String",
+      "description": "Error classification: MASTER_DATA | TRANSACTION | CONFIG | AUTHORIZATION"
+    },
+    {
+      "name": "rootCauseText",
+      "type": "String",
+      "description": "Plain-language root cause explanation"
+    },
+    {
+      "name": "recommendations",
+      "type": "Array",
+      "description": "Ranked list of corrective actions",
+      "items": {
+        "priority": "String (HIGH | MEDIUM | LOW)",
+        "confidence": "Number (0–100)",
+        "title": "String",
+        "description": "String",
+        "actionCode": "String (RETRY_POSTING | CREATE_WORKFLOW | UPDATE_COSTCENTER | LAUNCH_FIORI | ESCALATE)"
+      }
+    }
+  ]
+}

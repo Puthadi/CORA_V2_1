@@ -1,0 +1,684 @@
+{
+  "skillId": "cora-cost-center-error-resolution",
+  "testSuite": "CORA Joule Skill — Conversation Test Cases",
+  "version": "1.0.0",
+  "description": "SAP Joule Copilot Studio test cases covering all 10 SAP error scenarios, general-query flows, and edge-case handling. Each test specifies the user turn, expected bot intent, and acceptance criteria matched to the actual mock-server response content.",
+
+  "conversationTests": [
+
+    {
+      "testId": "TC-001",
+      "name": "KS113 — Cost Center Blocked for Primary Postings",
+      "errorLayer": "MASTER_DATA",
+      "turns": [
+        {
+          "turn": 1,
+          "role": "user",
+          "message": "Analyze this SAP error: KS113 — \"Cost Center CC1000 is blocked for primary postings in period 05/2026\" on cost center CC1000 (1000).",
+          "context": {
+            "errorCode": "KS113",
+            "errorText": "Cost Center CC1000 is blocked for primary postings in period 05/2026",
+            "costCenter": "CC1000",
+            "companyCode": "1000",
+            "controllingArea": "A000",
+            "fiscalYear": "2026",
+            "fiscalPeriod": "005",
+            "userId": "SARAH",
+            "processContext": "Manual journal entry posting",
+            "documentNumber": "1800001234"
+          }
+        },
+        {
+          "turn": 2,
+          "role": "bot",
+          "expectedIntent": "error_analysis",
+          "acceptanceCriteria": {
+            "rootCauseKeywords": ["posting block", "31-May-2026", "primary"],
+            "minRecommendations": 2,
+            "expectedRecommendations": [
+              {
+                "priority": "HIGH",
+                "actionCode": "CREATE_WORKFLOW",
+                "titleContains": "unlock"
+              },
+              {
+                "priority": "MEDIUM",
+                "actionCode": "LAUNCH_FIORI",
+                "titleContains": "alternative"
+              }
+            ]
+          }
+        }
+      ]
+    },
+
+    {
+      "testId": "TC-002",
+      "name": "BU011 — Posting Period Closed",
+      "errorLayer": "TRANSACTION",
+      "turns": [
+        {
+          "turn": 1,
+          "role": "user",
+          "message": "Analyze this SAP error: BU011 — \"Posting period 05/2026 is closed for account type S in company code 1000\" on cost center CC2000 (1000).",
+          "context": {
+            "errorCode": "BU011",
+            "errorText": "Posting period 05/2026 is closed for account type S in company code 1000",
+            "costCenter": "CC2000",
+            "companyCode": "1000",
+            "controllingArea": "A000",
+            "fiscalYear": "2026",
+            "fiscalPeriod": "005",
+            "userId": "BATCH_JOB",
+            "processContext": "Overnight batch posting run",
+            "documentNumber": "1800001235"
+          }
+        },
+        {
+          "turn": 2,
+          "role": "bot",
+          "expectedIntent": "error_analysis",
+          "acceptanceCriteria": {
+            "rootCauseKeywords": ["period", "closed", "01-Jun-2026", "batch"],
+            "minRecommendations": 2,
+            "expectedRecommendations": [
+              {
+                "priority": "HIGH",
+                "actionCode": "RETRY_POSTING",
+                "titleContains": "Re-post"
+              },
+              {
+                "priority": "HIGH",
+                "actionCode": "CREATE_WORKFLOW",
+                "titleContains": "re-opening"
+              }
+            ]
+          }
+        }
+      ]
+    },
+
+    {
+      "testId": "TC-003",
+      "name": "KP006 — Budget Exceeded",
+      "errorLayer": "TRANSACTION",
+      "turns": [
+        {
+          "turn": 1,
+          "role": "user",
+          "message": "Analyze this SAP error: KP006 — \"Budget exceeded for cost center CC3000, cost element 430000 by EUR 15,000\" on cost center CC3000 (1000).",
+          "context": {
+            "errorCode": "KP006",
+            "errorText": "Budget exceeded for cost center CC3000, cost element 430000 by EUR 15,000",
+            "costCenter": "CC3000",
+            "companyCode": "1000",
+            "controllingArea": "A000",
+            "fiscalYear": "2026",
+            "fiscalPeriod": "005",
+            "userId": "ALICE",
+            "processContext": "Purchase order commitment check"
+          }
+        },
+        {
+          "turn": 2,
+          "role": "bot",
+          "expectedIntent": "error_analysis",
+          "acceptanceCriteria": {
+            "rootCauseKeywords": ["budget", "108%", "430000", "IT Services"],
+            "minRecommendations": 2,
+            "expectedRecommendations": [
+              {
+                "priority": "HIGH",
+                "actionCode": "CREATE_WORKFLOW",
+                "titleContains": "supplement"
+              },
+              {
+                "priority": "MEDIUM",
+                "actionCode": "LAUNCH_FIORI",
+                "titleContains": "Transfer budget"
+              }
+            ]
+          }
+        }
+      ]
+    },
+
+    {
+      "testId": "TC-004",
+      "name": "7Q299 — Authorization Failure K_CSKS",
+      "errorLayer": "AUTHORIZATION",
+      "turns": [
+        {
+          "turn": 1,
+          "role": "user",
+          "message": "Analyze this SAP error: 7Q299 — \"User BOB does not have authorization for object K_CSKS on cost center CC4000\" on cost center CC4000 (1000).",
+          "context": {
+            "errorCode": "7Q299",
+            "errorText": "User BOB does not have authorization for object K_CSKS on cost center CC4000",
+            "costCenter": "CC4000",
+            "companyCode": "1000",
+            "controllingArea": "A000",
+            "fiscalYear": "2026",
+            "fiscalPeriod": "005",
+            "userId": "BOB",
+            "processContext": "Cost center report display"
+          }
+        },
+        {
+          "turn": 2,
+          "role": "bot",
+          "expectedIntent": "error_analysis",
+          "acceptanceCriteria": {
+            "rootCauseKeywords": ["K_CSKS", "activity 03", "CC_RD_VIEWER"],
+            "minRecommendations": 1,
+            "expectedRecommendations": [
+              {
+                "priority": "HIGH",
+                "actionCode": "CREATE_WORKFLOW",
+                "titleContains": "CC_RD_VIEWER"
+              }
+            ]
+          }
+        }
+      ]
+    },
+
+    {
+      "testId": "TC-005",
+      "name": "KI235 — Cost Element Not Assigned to CC Category",
+      "errorLayer": "TRANSACTION",
+      "turns": [
+        {
+          "turn": 1,
+          "role": "user",
+          "message": "Analyze this SAP error: KI235 — \"Cost element 430500 is not assigned to cost center category A for CC5000\" on cost center CC5000 (2000).",
+          "context": {
+            "errorCode": "KI235",
+            "errorText": "Cost element 430500 is not assigned to cost center category A for CC5000",
+            "costCenter": "CC5000",
+            "companyCode": "2000",
+            "controllingArea": "A000",
+            "fiscalYear": "2026",
+            "fiscalPeriod": "005",
+            "userId": "ALICE",
+            "processContext": "Direct activity allocation",
+            "documentNumber": "1800001236"
+          }
+        },
+        {
+          "turn": 2,
+          "role": "bot",
+          "expectedIntent": "error_analysis",
+          "acceptanceCriteria": {
+            "rootCauseKeywords": ["430500", "category A", "Production", "category 1"],
+            "minRecommendations": 2,
+            "expectedRecommendations": [
+              {
+                "priority": "HIGH",
+                "actionCode": "CREATE_WORKFLOW",
+                "titleContains": "category"
+              },
+              {
+                "priority": "MEDIUM",
+                "actionCode": "RETRY_POSTING",
+                "titleContains": "430510"
+              }
+            ]
+          }
+        }
+      ]
+    },
+
+    {
+      "testId": "TC-006",
+      "name": "KI261 — Assessment Cycle Receiver Expired",
+      "errorLayer": "MASTER_DATA",
+      "turns": [
+        {
+          "turn": 1,
+          "role": "user",
+          "message": "Analyze this SAP error: KI261 — \"Assessment cycle EMEA_IT_ALLOC failed — receiver cost center CC5050 is expired\" on cost center CC5050 (1000).",
+          "context": {
+            "errorCode": "KI261",
+            "errorText": "Assessment cycle EMEA_IT_ALLOC failed — receiver cost center CC5050 is expired",
+            "costCenter": "CC5050",
+            "companyCode": "1000",
+            "controllingArea": "A000",
+            "fiscalYear": "2026",
+            "fiscalPeriod": "005",
+            "userId": "SYSTEM",
+            "processContext": "Month-end allocation cycle EMEA_IT_ALLOC"
+          }
+        },
+        {
+          "turn": 2,
+          "role": "bot",
+          "expectedIntent": "error_analysis",
+          "acceptanceCriteria": {
+            "rootCauseKeywords": ["EMEA_IT_ALLOC", "28-Feb-2026", "validity", "EUR 45,000"],
+            "minRecommendations": 2,
+            "expectedRecommendations": [
+              {
+                "priority": "HIGH",
+                "actionCode": "UPDATE_COSTCENTER",
+                "titleContains": "Extend validity"
+              },
+              {
+                "priority": "MEDIUM",
+                "actionCode": "LAUNCH_FIORI",
+                "titleContains": "CC5054"
+              }
+            ]
+          }
+        }
+      ]
+    },
+
+    {
+      "testId": "TC-007",
+      "name": "KP042 — Activity Type Not Assigned to Cost Center",
+      "errorLayer": "TRANSACTION",
+      "turns": [
+        {
+          "turn": 1,
+          "role": "user",
+          "message": "Analyze this SAP error: KP042 — \"Activity type MACH_HR is not assigned to cost center CC2000 for fiscal year 2026\" on cost center CC2000 (1000).",
+          "context": {
+            "errorCode": "KP042",
+            "errorText": "Activity type MACH_HR is not assigned to cost center CC2000 for fiscal year 2026",
+            "costCenter": "CC2000",
+            "companyCode": "1000",
+            "controllingArea": "A000",
+            "fiscalYear": "2026",
+            "fiscalPeriod": "005",
+            "userId": "PROD_CTRL",
+            "processContext": "Internal order machine hours confirmation",
+            "documentNumber": "1800001237"
+          }
+        },
+        {
+          "turn": 2,
+          "role": "bot",
+          "expectedIntent": "error_analysis",
+          "acceptanceCriteria": {
+            "rootCauseKeywords": ["MACH_HR", "2025", "2026", "planning cycle", "ORDS-2341"],
+            "minRecommendations": 2,
+            "expectedRecommendations": [
+              {
+                "priority": "HIGH",
+                "actionCode": "LAUNCH_FIORI",
+                "titleContains": "MACH_HR"
+              },
+              {
+                "priority": "MEDIUM",
+                "actionCode": "RETRY_POSTING",
+                "titleContains": "SETUP_HR"
+              }
+            ]
+          }
+        }
+      ]
+    },
+
+    {
+      "testId": "TC-008",
+      "name": "KS124 — Cost Center Validity Expired",
+      "errorLayer": "MASTER_DATA",
+      "turns": [
+        {
+          "turn": 1,
+          "role": "user",
+          "message": "Analyze this SAP error: KS124 — \"Cost center CC6000 is not valid on posting date 31.05.2026 — validity expired 28.02.2026\" on cost center CC6000 (1000).",
+          "context": {
+            "errorCode": "KS124",
+            "errorText": "Cost center CC6000 is not valid on posting date 31.05.2026 — validity expired 28.02.2026",
+            "costCenter": "CC6000",
+            "companyCode": "1000",
+            "controllingArea": "A000",
+            "fiscalYear": "2026",
+            "fiscalPeriod": "005",
+            "userId": "FINANCE_OPS",
+            "processContext": "Vendor invoice posting — travel expenses",
+            "documentNumber": "1800001238"
+          }
+        },
+        {
+          "turn": 2,
+          "role": "bot",
+          "expectedIntent": "error_analysis",
+          "acceptanceCriteria": {
+            "rootCauseKeywords": ["28-Feb-2026", "31-May-2026", "validity", "annual master data"],
+            "minRecommendations": 2,
+            "expectedRecommendations": [
+              {
+                "priority": "HIGH",
+                "actionCode": "UPDATE_COSTCENTER",
+                "titleContains": "Extend"
+              },
+              {
+                "priority": "MEDIUM",
+                "actionCode": "RETRY_POSTING",
+                "titleContains": "CC6001"
+              }
+            ]
+          }
+        }
+      ]
+    },
+
+    {
+      "testId": "TC-009",
+      "name": "KO210 — No specific response (generic fallback)",
+      "errorLayer": "UNKNOWN",
+      "note": "The mock server has no KO210-specific response — it falls back to GENERAL_RESPONSES.generic. This test verifies the fallback is coherent and does not crash.",
+      "turns": [
+        {
+          "turn": 1,
+          "role": "user",
+          "message": "Analyze this SAP error: KO210 — \"Settlement rule missing for cost center CC3100 — no valid receiver defined\" on cost center CC3100 (1000).",
+          "context": {
+            "errorCode": "KO210",
+            "errorText": "Settlement rule missing for cost center CC3100 — no valid receiver defined",
+            "costCenter": "CC3100",
+            "companyCode": "1000",
+            "controllingArea": "A000",
+            "fiscalYear": "2026",
+            "fiscalPeriod": "005",
+            "userId": "SYSTEM",
+            "processContext": "Period-end settlement run CO88"
+          }
+        },
+        {
+          "turn": 2,
+          "role": "bot",
+          "expectedIntent": "fallback_guidance",
+          "acceptanceCriteria": {
+            "fallbackAllowed": true,
+            "responseNotEmpty": true,
+            "doesNotCrash": true
+          }
+        }
+      ]
+    },
+
+    {
+      "testId": "TC-010",
+      "name": "SU53 — No specific response (generic fallback)",
+      "errorLayer": "UNKNOWN",
+      "note": "The mock server has no SU53-specific response — it falls back to GENERAL_RESPONSES.generic. This test verifies the fallback is coherent.",
+      "turns": [
+        {
+          "turn": 1,
+          "role": "user",
+          "message": "Analyze this SAP error: SU53 — \"Authorization check failed for transaction KS02 — missing activity 02 on object S_TCODE\" on cost center CC7000 (1000).",
+          "context": {
+            "errorCode": "SU53",
+            "errorText": "Authorization check failed for transaction KS02 — missing activity 02 on object S_TCODE",
+            "costCenter": "CC7000",
+            "companyCode": "1000",
+            "controllingArea": "A000",
+            "fiscalYear": "2026",
+            "fiscalPeriod": "005",
+            "userId": "CAROL",
+            "processContext": "Cost center master data change"
+          }
+        },
+        {
+          "turn": 2,
+          "role": "bot",
+          "expectedIntent": "fallback_guidance",
+          "acceptanceCriteria": {
+            "fallbackAllowed": true,
+            "responseNotEmpty": true,
+            "doesNotCrash": true
+          }
+        }
+      ]
+    },
+
+    {
+      "testId": "TC-011",
+      "name": "General Query — Why did my posting fail?",
+      "errorLayer": null,
+      "turns": [
+        {
+          "turn": 1,
+          "role": "user",
+          "message": "Why did my posting fail?",
+          "context": {}
+        },
+        {
+          "turn": 2,
+          "role": "bot",
+          "expectedIntent": "general_guidance",
+          "acceptanceCriteria": {
+            "rootCauseKeywords": ["Master Data", "KS113", "KS124", "Budget", "KP006", "Authorization", "K_CSKS"],
+            "responseNotEmpty": true
+          }
+        }
+      ]
+    },
+
+    {
+      "testId": "TC-012",
+      "name": "General Query — Top recurring errors this month",
+      "errorLayer": null,
+      "turns": [
+        {
+          "turn": 1,
+          "role": "user",
+          "message": "Top recurring errors this month",
+          "context": {}
+        },
+        {
+          "turn": 2,
+          "role": "bot",
+          "expectedIntent": "trend_summary",
+          "acceptanceCriteria": {
+            "rootCauseKeywords": ["BU011", "KS113", "7Q299", "KP006", "KI235", "Batch jobs", "period close"],
+            "responseNotEmpty": true
+          }
+        }
+      ]
+    },
+
+    {
+      "testId": "TC-013",
+      "name": "General Query — Budget overrun question (posting keyword match)",
+      "errorLayer": null,
+      "turns": [
+        {
+          "turn": 1,
+          "role": "user",
+          "message": "How do I resolve a budget exceeded posting error?",
+          "context": {}
+        },
+        {
+          "turn": 2,
+          "role": "bot",
+          "expectedIntent": "general_guidance",
+          "acceptanceCriteria": {
+            "rootCauseKeywords": ["KP006", "budget", "posting"],
+            "responseNotEmpty": true
+          }
+        }
+      ]
+    },
+
+    {
+      "testId": "TC-014",
+      "name": "Multi-turn — Follow-up question after KS113 analysis",
+      "errorLayer": "MASTER_DATA",
+      "turns": [
+        {
+          "turn": 1,
+          "role": "user",
+          "message": "Analyze this SAP error: KS113 — \"Cost Center CC1000 is blocked for primary postings in period 05/2026\" on cost center CC1000 (1000).",
+          "context": {
+            "errorCode": "KS113",
+            "costCenter": "CC1000",
+            "companyCode": "1000",
+            "fiscalYear": "2026",
+            "fiscalPeriod": "005",
+            "userId": "SARAH"
+          }
+        },
+        {
+          "turn": 2,
+          "role": "bot",
+          "expectedIntent": "error_analysis",
+          "acceptanceCriteria": {
+            "minRecommendations": 2,
+            "responseNotEmpty": true
+          }
+        },
+        {
+          "turn": 3,
+          "role": "user",
+          "message": "How do I fix this posting issue?"
+        },
+        {
+          "turn": 4,
+          "role": "bot",
+          "expectedIntent": "contextual_guidance",
+          "acceptanceCriteria": {
+            "responseNotEmpty": true
+          }
+        }
+      ]
+    },
+
+    {
+      "testId": "TC-015",
+      "name": "Edge Case — Completely unknown error code (generic fallback)",
+      "errorLayer": null,
+      "turns": [
+        {
+          "turn": 1,
+          "role": "user",
+          "message": "I'm getting an error I don't recognize: XYZ999 on CC9999.",
+          "context": {
+            "errorCode": "XYZ999",
+            "errorText": "Unknown error on cost center CC9999",
+            "costCenter": "CC9999",
+            "companyCode": "1000"
+          }
+        },
+        {
+          "turn": 2,
+          "role": "bot",
+          "expectedIntent": "fallback_guidance",
+          "acceptanceCriteria": {
+            "fallbackAllowed": true,
+            "responseNotEmpty": true,
+            "doesNotCrash": true
+          }
+        }
+      ]
+    }
+
+  ],
+
+  "actionTests": [
+    {
+      "testId": "ACT-001",
+      "name": "Execute UPDATE_COSTCENTER — clear posting block (KS113)",
+      "input": {
+        "errorId": "__RESOLVE_KS113__",
+        "actionCode": "UPDATE_COSTCENTER",
+        "actionPayload": "{\"costCenter\":\"CC1000\",\"action\":\"clearPrimaryPostingBlock\"}",
+        "recommendationId": null
+      },
+      "expectedOutput": {
+        "success": true,
+        "messageContains": "updated successfully"
+      }
+    },
+    {
+      "testId": "ACT-002",
+      "name": "Execute CREATE_WORKFLOW — budget supplement (KP006)",
+      "input": {
+        "errorId": "__RESOLVE_KP006__",
+        "actionCode": "CREATE_WORKFLOW",
+        "actionPayload": "{\"subject\":\"Budget Supplement Request for CC3000\",\"amount\":15000,\"currency\":\"EUR\"}",
+        "recommendationId": null
+      },
+      "expectedOutput": {
+        "success": true,
+        "messageContains": "Workflow ticket created",
+        "workflowIdPattern": "^WF-\\d{5,}$"
+      }
+    },
+    {
+      "testId": "ACT-003",
+      "name": "Execute LAUNCH_FIORI — post period",
+      "input": {
+        "errorId": "__RESOLVE_BU011__",
+        "actionCode": "LAUNCH_FIORI",
+        "actionPayload": "{\"appId\":\"OB52\",\"description\":\"Manage Posting Periods\"}",
+        "recommendationId": null
+      },
+      "expectedOutput": {
+        "success": true,
+        "fioriUrlContains": "OB52"
+      }
+    },
+    {
+      "testId": "ACT-004",
+      "name": "Execute ESCALATE — authorization error (7Q299)",
+      "input": {
+        "errorId": "__RESOLVE_7Q299__",
+        "actionCode": "ESCALATE",
+        "actionPayload": "{\"userId\":\"BOB\",\"missingAuth\":\"K_CSKS\",\"costCenter\":\"CC4000\"}",
+        "recommendationId": null
+      },
+      "expectedOutput": {
+        "success": true,
+        "messageContains": "Escalation sent"
+      }
+    },
+    {
+      "testId": "ACT-005",
+      "name": "Execute RETRY_POSTING — change posting date (BU011)",
+      "input": {
+        "errorId": "__RESOLVE_BU011__",
+        "actionCode": "RETRY_POSTING",
+        "actionPayload": "{\"documentNumber\":\"1800001235\",\"newPostingDate\":\"2026-06-01\"}",
+        "recommendationId": null
+      },
+      "expectedOutput": {
+        "success": true,
+        "messageContains": "resubmitted"
+      }
+    }
+  ],
+
+  "feedbackTests": [
+    {
+      "testId": "FB-001",
+      "name": "Positive feedback — rating 5",
+      "input": {
+        "recommendationId": "any-rec-id-001",
+        "helpful": true,
+        "rating": 5,
+        "comment": "Exactly the right fix — CC1000 is now unblocked."
+      },
+      "expectedOutput": {
+        "success": true
+      }
+    },
+    {
+      "testId": "FB-002",
+      "name": "Negative feedback with comment",
+      "input": {
+        "recommendationId": "any-rec-id-002",
+        "helpful": false,
+        "rating": 2,
+        "comment": "The alternative cost center CC1001 is also locked."
+      },
+      "expectedOutput": {
+        "success": true
+      }
+    }
+  ]
+}
